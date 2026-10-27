@@ -1,0 +1,57 @@
+{
+  "_note": "SIMPLIFIED FOR EDUCATION — budget caps are game credits, not real dollars.",
+  "difficulties": [
+    {
+      "id": "tutorial",
+      "name": "Tutorial",
+      "nameAr": "تعليمي",
+      "budgetCap": 5000000,
+      "budgetMultiplier": 1,
+      "marginWarning": 0.2,
+      "eventRatePerDay": 0,
+      "unannouncedFailures": false,
+      "scienceScale": 1,
+      "description": "Big margins, no random events.",
+      "descriptionAr": "هوامش كبيرة ولا أحداث عشوائية."
+    },
+    {
+      "id": "normal",
+      "name": "Normal",
+      "nameAr": "عادي",
+      "budgetCap": 2500000,
+      "budgetMultiplier": 0.8,
+      "marginWarning": 0.2,
+      "eventRatePerDay": 1,
+      "unannouncedFailures": false,
+      "scienceScale": 1,
+      "description": "Standard mission-director experience.",
+      "descriptionAr": "تجربة مدير المهمة القياسية."
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer",
+      "nameAr": "مهندس",
+      "budgetCap": 1500000,
+      "budgetMultiplier": 0.6,
+      "marginWarning": 0.25,
+      "eventRatePerDay": 1.6,
+      "unannouncedFailures": false,
+      "scienceScale": 1,
+      "description": "Tight margins, frequent anomalies.",
+      "descriptionAr": "هوامش ضيقة وشذوذ متكرر."
+    },
+    {
+      "id": "director",
+      "name": "Mission Director",
+      "nameAr": "مدير المهمة",
+      "budgetCap": 900000,
+      "budgetMultiplier": 0.45,
+      "marginWarning": 0.3,
+      "eventRatePerDay": 2.4,
+      "unannouncedFailures": true,
+      "scienceScale": 1.1,
+      "description": "Harsh budget, unannounced failures.",
+      "descriptionAr": "ميزانية قاسية وإخفاقات غير معلنة."
+    }
+  ]
+}

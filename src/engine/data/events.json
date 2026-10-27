@@ -1,0 +1,77 @@
+{
+  "_note": "SIMPLIFIED FOR EDUCATION — rates are game-tuned; mitigations teach real operations.",
+  "events": [
+    {
+      "id": "solar_storm",
+      "name": "Solar storm",
+      "nameAr": "عاصفة شمسية",
+      "description": "Charged particles degrade panels and threaten electronics.",
+      "descriptionAr": "جسيمات مشحونة تهدد الإلكترونيات والألواح.",
+      "mitigation": "Enable SHLD (safe mode) to ride it out.",
+      "mitigationAr": "فعّل وضع الحماية SHLD لتجاوزها.",
+      "mitigatedBySafeMode": true,
+      "effect": { "reliabilityPenalty": 0.05, "powerDrawW": 20 },
+      "baseRatePerDay": 0.02
+    },
+    {
+      "id": "debris",
+      "name": "Debris conjunction",
+      "nameAr": "اقتران حطام",
+      "description": "Tracked fragment on close approach.",
+      "descriptionAr": "شظية مرصودة على مسار قريب.",
+      "mitigation": "FIRE avoidance burn (costs propellant) or accept risk.",
+      "mitigationAr": "مناورة تفادٍ بـ FIRE (تكلف وقودا) أو اقبل الخطر.",
+      "mitigatedBySafeMode": false,
+      "effect": { "reliabilityPenalty": 0.08 },
+      "baseRatePerDay": 0.015
+    },
+    {
+      "id": "battery_degradation",
+      "name": "Battery degradation",
+      "nameAr": "تدهور البطارية",
+      "description": "Cells lose capacity after deep cycling.",
+      "descriptionAr": "الخلايا تفقد سعتها بعد دورات عميقة.",
+      "mitigation": "Larger battery margin in design; reduce loads.",
+      "mitigationAr": "هامش بطارية أكبر في التصميم; قلل الأحمال.",
+      "mitigatedBySafeMode": false,
+      "effect": { "batteryCapacityMult": 0.92 },
+      "baseRatePerDay": 0.01
+    },
+    {
+      "id": "comms_loss",
+      "name": "Comms loss",
+      "nameAr": "انقطاع الاتصال",
+      "description": "Ground-station dropout / pointing error.",
+      "descriptionAr": "انقطاع المحطة الأرضية / خطأ توجيه.",
+      "mitigation": "COM retry; higher-gain antenna in design.",
+      "mitigationAr": "أعد المحاولة بـ COM; هوائي أعلى كسبا في التصميم.",
+      "mitigatedBySafeMode": false,
+      "effect": { "dataLossGb": 2 },
+      "baseRatePerDay": 0.02
+    },
+    {
+      "id": "fuel_leak",
+      "name": "Fuel leak",
+      "nameAr": "تسرب وقود",
+      "description": "Valve seal weep detected.",
+      "descriptionAr": "رُصد نضح في صمام.",
+      "mitigation": "None in flight — design reliable propulsion.",
+      "mitigationAr": "لا حل أثناء الطيران — صمم دفعا موثوقا.",
+      "mitigatedBySafeMode": false,
+      "effect": { "propLossKg": 5 },
+      "baseRatePerDay": 0.008
+    },
+    {
+      "id": "overheating",
+      "name": "Overheating",
+      "nameAr": "ارتفاع حرارة",
+      "description": "Thermal excursion on sun-facing side.",
+      "descriptionAr": "ارتفاع حراري في الجهة المشمسة.",
+      "mitigation": "SHLD safe mode reduces payload draw and heat.",
+      "mitigationAr": "وضع الحماية يقلل الحمل والحرارة.",
+      "mitigatedBySafeMode": true,
+      "effect": { "reliabilityPenalty": 0.04, "powerDrawW": 15 },
+      "baseRatePerDay": 0.012
+    }
+  ]
+}

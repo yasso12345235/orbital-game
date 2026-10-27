@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #02050f;
+  color: #e8f1ff;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+/* Selection + native focus styling inside the game shell */
+::selection {
+  background: color-mix(in srgb, #46c8ff 45%, transparent);
+  color: #02050f;
+}
+:focus-visible {
+  outline: 2px solid #46c8ff;
+  outline-offset: 2px;
+}
+
+/* Range inputs used outside the pixel slider component */
+input[type='range'] {
+  accent-color: #46c8ff;
+}
+
+/* The game shell scrolls, not the body */
+#root {
+  overflow: auto;
+}

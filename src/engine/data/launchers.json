@@ -1,0 +1,71 @@
+{
+  "_note": "SIMPLIFIED FOR EDUCATION — capacities are educational approximations, not real user guides. Sources noted per launcher.",
+  "launchers": [
+    {
+      "id": "electron",
+      "name": "Electron (class)",
+      "nameAr": "إلكترون (فئة)",
+      "capacityToLeoKg": 300,
+      "cost": 150000,
+      "reliability": 0.9,
+      "description": "Small launcher for CubeSats. Cheap but tiny fairing.",
+      "descriptionAr": "صاروخ صغير للأقمار المكعبة. رخيص لكن سعته محدودة.",
+      "source": "Rocket Lab Electron user's guide ~300 kg to LEO (simplified)."
+    },
+    {
+      "id": "vega_c",
+      "name": "Vega-C (class)",
+      "nameAr": "فيغا-سي (فئة)",
+      "capacityToLeoKg": 2300,
+      "cost": 350000,
+      "reliability": 0.92,
+      "description": "Light launcher for small orbiters.",
+      "descriptionAr": "صاروخ خفيف للمركبات المدارية الصغيرة.",
+      "source": "Arianespace Vega-C manual ~2.3 t to LEO (simplified)."
+    },
+    {
+      "id": "falcon9",
+      "name": "Falcon 9 (class)",
+      "nameAr": "فالكون 9 (فئة)",
+      "capacityToLeoKg": 17500,
+      "cost": 550000,
+      "reliability": 0.98,
+      "description": "Workhorse medium-heavy launcher. Best cost per kg.",
+      "descriptionAr": "صاروخ العمل الأساسي. أفضل تكلفة لكل كيلوغرام.",
+      "source": "SpaceX Falcon 9 manual ~17-22 t to LEO, midpoint 17.5 t (simplified)."
+    },
+    {
+      "id": "ariane64",
+      "name": "Ariane 6 (64, class)",
+      "nameAr": "أريان 6 (فئة)",
+      "capacityToLeoKg": 20000,
+      "cost": 650000,
+      "reliability": 0.95,
+      "description": "Heavy launcher for comsats and lunar missions.",
+      "descriptionAr": "صاروخ ثقيل لأقمار الاتصالات والمهام القمرية.",
+      "source": "Arianespace Ariane 6 manual ~20 t to LEO for 64 config (simplified)."
+    },
+    {
+      "id": "falcon_heavy",
+      "name": "Falcon Heavy (class)",
+      "nameAr": "فالكون هيفي (فئة)",
+      "capacityToLeoKg": 60000,
+      "cost": 950000,
+      "reliability": 0.96,
+      "description": "Super-heavy for Jupiter/Europa direct transfers.",
+      "descriptionAr": "صاروخ فائق الثقل لمهام المشتري وأوروبا المباشرة.",
+      "source": "SpaceX Falcon Heavy ~60 t to LEO (simplified, expendable proxy)."
+    },
+    {
+      "id": "super_heavy",
+      "name": "Super Heavy (class)",
+      "nameAr": "فائق الثقل (فئة)",
+      "capacityToLeoKg": 100000,
+      "cost": 2600000,
+      "reliability": 0.94,
+      "description": "100 t class for Saturn-scale direct missions. Lowest reliability, biggest jaw.",
+      "descriptionAr": "فئة 100 طن لمهام زحل المباشرة. موثوقية أقل لكن قدرة أضخم.",
+      "source": "Super-heavy lift ~100 t to LEO class proxy (simplified)."
+    }
+  ]
+}

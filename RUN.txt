@@ -1,0 +1,9 @@
+﻿ORBITAL - Space Mission Lab (Mission Architect)
+================================================
+1) npm install
+2) npm run dev      -> http://localhost:5174
+3) npm test         -> engine/flow tests
+4) npm run build    -> production bundle in dist/
+
+Requirements: Node.js 18+.
+All progress is saved locally in the browser (localStorage).

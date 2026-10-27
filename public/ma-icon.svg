@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="ORBITAL — Space Mission Lab">
+  <defs>
+    <radialGradient id="g" cx="35%" cy="30%">
+      <stop offset="0%" stop-color="#3DE0FF"/>
+      <stop offset="70%" stop-color="#0B1A3D"/>
+      <stop offset="100%" stop-color="#02050F"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="22" fill="#02050F"/>
+  <ellipse cx="64" cy="70" rx="54" ry="20" fill="none" stroke="#3DE0FF" stroke-opacity="0.75" stroke-width="2" stroke-dasharray="5 7" transform="rotate(-14 64 70)"/>
+  <circle cx="104" cy="52" r="5" fill="#3DE0FF"/>
+  <circle cx="64" cy="76" r="38" fill="url(#g)"/>
+  <path d="M64 12 l12 26 -12 -7 -12 7 z" fill="#BFE9FF"/>
+  <circle cx="64" cy="76" r="5" fill="#2FE39A" opacity="0.9"/>
+</svg>
