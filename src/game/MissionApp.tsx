@@ -63,6 +63,8 @@ export default function MissionApp() {
   const setScreen = useMission((s) => s.setScreen);
   const missionId = useMission((s) => s.missionId);
   const settings = useMission((s) => s.settings);
+  const loadWarning = useMission((s) => s.loadWarning);
+  const dismissLoadWarning = useMission((s) => s.dismissLoadWarning);
 
   useInputLayer();
 
@@ -178,13 +180,26 @@ export default function MissionApp() {
           )}
           {screen === 'home' && (
             <span className="ma-status hidden md:inline-flex" data-tone="accent">
-              <i /> MISSION ARCHITECT PROGRAM · v1.4
+              <i /> MISSION ARCHITECT PROGRAM · v1.5
             </span>
           )}
           <AIChip />
           <ShortcutSheet />
         </div>
       </header>
+
+      {loadWarning && (
+        <div className="ma-loadwarning mb-3" role="status">
+          <span className="ma-loadwarning-ico" aria-hidden><Icon name="warning" size={16} /></span>
+          <div className="min-w-0 flex-1">
+            <b>{t('saveNotice')}</b>
+            <span dir="ltr">{loadWarning}</span>
+          </div>
+          <button type="button" className="ma-btn-ghost" onClick={dismissLoadWarning}>
+            {t('dismiss')}
+          </button>
+        </div>
+      )}
 
       {/* Screen body with cinematic transition */}
       <main className="pb-2">

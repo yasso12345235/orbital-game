@@ -13,6 +13,20 @@ import {
 import { sound } from './audio';
 import type { Lang } from './i18n';
 import { TECH_NODES, STARTING_NODE, unlockedIdsFor, canUnlock, levelForXp } from './tech';
+import {
+  BACKUP_KEY,
+  CORRUPT_KEY,
+  DEFAULT_PROGRESS,
+  DEFAULT_SETTINGS,
+  EMPTY_DESIGN,
+  LEGACY_SAVE_KEY,
+  SAVE_KEY,
+  createSave,
+  exportSave as serializeSave,
+  importSave as parseImportedSave,
+  parseSave,
+  type PersistedGame,
+} from './save';
 
 export type ScreenId =
   | 'home' | 'hangar' | 'missionSelect' | 'builder' | 'launcher'
@@ -134,61 +148,112 @@ interface MissionStore {
   toggleAi: () => void;
   setHangarTab: (t: HangarTab) => void;
   save: () => void;
+  /** Set when the boot save was damaged/migrated, shown once as a banner. */
+  loadWarning: string | null;
+  dismissLoadWarning: () => void;
+  /** Serialise the current campaign + in-flight run to pretty JSON. */
+  exportSave: () => string;
+  /** Replace the campaign from imported JSON. Never throws. */
+  importSave: (text: string) => { ok: boolean; message: string };
 }
-
-const SAVE_KEY = 'ma_save_v1';
-
-const DEFAULT_SETTINGS: MissionSettings = {
-  lang: 'en',
-  sound: true,
-  volume: 0.6,
-  effectsVolume: 0.85,
-  ambienceVolume: 0.65,
-  quality: 'high',
-  reducedMotion: false,
-  learnMode: true,
-  teacherMode: false,
-  keybindings: {
-    FIRE: 'Space', SCAN: 'KeyS', NAV: 'KeyN', COM: 'KeyC', SHLD: 'KeyH', WARP: 'KeyW',
-    CONFIRM: 'Enter', BACK: 'Backspace', UP: 'ArrowUp', DOWN: 'ArrowDown', LEFT: 'ArrowLeft', RIGHT: 'ArrowRight',
-    ROTATE_CW: 'KeyE', ROTATE_CCW: 'KeyQ', PLACE: 'Enter', REMOVE: 'Backspace', NEXT_SLOT: 'Tab', ANALYSE: 'KeyA', PAUSE: 'Escape',
-  },
-};
-
-const DEFAULT_PROGRESS: MissionProgress = {
-  credits: 3_000_000,
-  xp: 0,
-  unlockedTech: [STARTING_NODE],
-  completed: {},
-  badges: [],
-};
-
-const EMPTY_DESIGN: SpacecraftDesign = {
-  missionId: '',
-  launcherId: '',
-  components: { bus: null, power: null, propulsion: null, comms: null, payload: null, thermal: null },
-  redundancy: { bus: false, power: false, propulsion: false, comms: false, payload: false, thermal: false },
-  propellantMassKg: 0,
-};
 
 const CATEGORIES: ComponentCategory[] = ['bus', 'power', 'propulsion', 'comms', 'payload', 'thermal'];
 
-function loadSave(): { settings: MissionSettings; progress: MissionProgress; difficulty: DifficultyId } | null {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return {
-      settings: { ...DEFAULT_SETTINGS, ...parsed.settings, keybindings: { ...DEFAULT_SETTINGS.keybindings, ...parsed.settings?.keybindings } },
-      progress: { ...DEFAULT_PROGRESS, ...parsed.progress },
-      difficulty: parsed.difficulty ?? 'tutorial',
-    };
-  } catch {
-    return null;
-  }
+interface HydratedRun {
+  screen: ScreenId;
+  missionId: string | null;
+  launcherId: string | null;
+  design: SpacecraftDesign;
+  builder: BuilderState;
+  sim: SimState | null;
+  launch: LaunchState | null;
+  altitudeOffsetKm: number;
+  inclinationDeg: number;
+  validate: ValidationResult | null;
 }
 
-const saved = typeof localStorage !== 'undefined' ? loadSave() : null;
+/**
+ * Read the persisted campaign at boot. A damaged primary save is quarantined
+ * (kept under CORRUPT_KEY for support) and the rotating backup is tried before
+ * falling back to a fresh campaign, so one bad write cannot brick the game.
+ */
+function readSave(): { game: PersistedGame | null; warning: string | null } {
+  if (typeof localStorage === 'undefined') return { game: null, warning: null };
+
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(SAVE_KEY);
+  } catch {
+    return { game: null, warning: null };
+  }
+
+  if (!raw) {
+    // v1 saves predate the versioned key; read them here and let the next write
+    // upgrade them in place.
+    try {
+      const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+      if (legacy) {
+        const migrated = parseSave(legacy);
+        if (migrated.game) return { game: migrated.game, warning: null };
+      }
+    } catch { /* storage unavailable */ }
+    return { game: null, warning: null };
+  }
+
+  const primary = parseSave(raw);
+  if (primary.game) return { game: primary.game, warning: primary.warning };
+
+  try {
+    localStorage.setItem(CORRUPT_KEY, raw);
+  } catch { /* out of quota — nothing else to do */ }
+
+  let backup: string | null = null;
+  try {
+    backup = localStorage.getItem(BACKUP_KEY);
+  } catch { /* storage unavailable */ }
+  if (backup) {
+    const restored = parseSave(backup);
+    if (restored.game) {
+      return {
+        game: restored.game,
+        warning:
+          'Your saved game was damaged, so an earlier backup was restored. Recent progress may be missing.',
+      };
+    }
+  }
+
+  return {
+    game: null,
+    warning: primary.warning ?? 'Your saved game could not be read; starting a new campaign.',
+  };
+}
+
+/** Turn a parsed save into store state; validation is always recomputed, never trusted. */
+function hydrateRun(game: PersistedGame | null): HydratedRun {
+  const run = game?.run ?? null;
+  const design: SpacecraftDesign = run
+    ? { ...run.design, components: { ...run.design.components }, redundancy: { ...run.design.redundancy } }
+    : { ...EMPTY_DESIGN, components: { ...EMPTY_DESIGN.components }, redundancy: { ...EMPTY_DESIGN.redundancy } };
+  const missionId = run?.missionId ?? null;
+  const validate = missionId
+    ? resolveDesign(design, lookupTables(), budgetCapFor(game?.difficulty ?? 'tutorial'))
+    : null;
+  return {
+    screen: run?.screen ?? 'home',
+    missionId,
+    launcherId: run?.launcherId || null,
+    design,
+    builder: run ? run.builder : emptyBuilder(),
+    sim: run?.sim ?? null,
+    launch: run?.launch ?? null,
+    altitudeOffsetKm: run?.altitudeOffsetKm ?? 0,
+    inclinationDeg: run?.inclinationDeg ?? 0,
+    validate,
+  };
+}
+
+const loaded = readSave();
+const boot = hydrateRun(loaded.game);
 
 function emptyBuilder(): BuilderState {
   return {
@@ -249,33 +314,136 @@ export function dailyPowerFor(design: SpacecraftDesign, missionId: string): { ch
 }
 
 let toastSeq = 1;
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+let lastBackupAt = 0;
+
+/** Write the current state now (also used by pagehide/visibilitychange). */
+function flushSave(): void {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
+  try {
+    useMission.getState().save();
+  } catch { /* store not ready */ }
+}
+
+/**
+ * Coalesce bursts of state changes into periodic writes. Operations tick ~10×/s,
+ * so a direct write per tick would hammer localStorage. Crucially this is a
+ * *trailing throttle*, not a debounce: an existing timer is never reset, so
+ * continuous simulation ticks cannot starve the save forever.
+ */
+function scheduleSave(delay = 900): void {
+  if (autosaveTimer) return;
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    try {
+      useMission.getState().save();
+    } catch { /* storage unavailable */ }
+  }, delay);
+}
+
+if (typeof window !== 'undefined') {
+  // `pagehide` fires on reload/close; `visibilitychange` covers mobile task
+  // switches where `pagehide` is unreliable. Both flush synchronously.
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
+}
 
 export const useMission = create<MissionStore>((set, get) => ({
-  screen: 'home',
-  difficulty: saved?.difficulty ?? 'tutorial',
-  missionId: null,
-  launcherId: null,
-  design: { ...EMPTY_DESIGN, components: { ...EMPTY_DESIGN.components }, redundancy: { ...EMPTY_DESIGN.redundancy } },
-  builder: emptyBuilder(),
-  validate: null,
+  difficulty: loaded.game?.difficulty ?? 'tutorial',
+  ...boot,
   validationStale: false,
-  sim: null,
-  launch: null,
   result: null,
-  settings: saved?.settings ?? DEFAULT_SETTINGS,
-  progress: saved?.progress ?? DEFAULT_PROGRESS,
+  settings: loaded.game?.settings ?? DEFAULT_SETTINGS,
+  progress: loaded.game?.progress ?? DEFAULT_PROGRESS,
   toasts: [],
   commandPulse: {},
   aiOpen: false,
   hangarTab: 'hangar',
-  altitudeOffsetKm: 0,
-  inclinationDeg: 0,
+  loadWarning: loaded.warning,
 
   save: () => {
-    const { settings, progress, difficulty } = get();
+    const s = get();
+    const game = createSave({
+      screen: s.screen,
+      missionId: s.missionId,
+      launcherId: s.launcherId,
+      design: s.design,
+      builder: s.builder,
+      altitudeOffsetKm: s.altitudeOffsetKm,
+      inclinationDeg: s.inclinationDeg,
+      sim: s.sim,
+      launch: s.launch,
+      settings: s.settings,
+      progress: s.progress,
+      difficulty: s.difficulty,
+    });
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ settings, progress, difficulty }));
-    } catch { /* storage unavailable */ }
+      // Keep a rotating backup of the last known-good save (throttled so the
+      // one-second autosave does not double every write).
+      const previous = localStorage.getItem(SAVE_KEY);
+      if (previous && Date.now() - lastBackupAt > 15_000 && parseSave(previous).game) {
+        localStorage.setItem(BACKUP_KEY, previous);
+        lastBackupAt = Date.now();
+      }
+      localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+    } catch { /* storage unavailable or over quota */ }
+  },
+
+  dismissLoadWarning: () => set({ loadWarning: null }),
+
+  exportSave: () => {
+    const s = get();
+    return serializeSave(
+      createSave({
+        screen: s.screen,
+        missionId: s.missionId,
+        launcherId: s.launcherId,
+        design: s.design,
+        builder: s.builder,
+        altitudeOffsetKm: s.altitudeOffsetKm,
+        inclinationDeg: s.inclinationDeg,
+        sim: s.sim,
+        launch: s.launch,
+        settings: s.settings,
+        progress: s.progress,
+        difficulty: s.difficulty,
+      }),
+    );
+  },
+
+  importSave: (text) => {
+    let game: PersistedGame;
+    try {
+      game = parseImportedSave(text);
+    } catch (e) {
+      return { ok: false, message: e instanceof Error ? e.message : 'Could not read that file.' };
+    }
+    const hydrated = hydrateRun(game);
+    set({
+      settings: game.settings,
+      progress: game.progress,
+      difficulty: game.difficulty,
+      ...hydrated,
+      // A campaign-only file (no in-flight run) should not yank the player off
+      // the screen they imported from; a run-bearing file navigates to it.
+      screen: game.run ? hydrated.screen : get().screen,
+      validationStale: false,
+      result: null,
+      toasts: [],
+      loadWarning: null,
+    });
+    sound.setMuted(!game.settings.sound);
+    sound.setVolume(game.settings.volume);
+    get().save();
+    return {
+      ok: true,
+      message: `Imported: ${game.progress.unlockedTech.length} tech nodes, ${game.progress.badges.length} badges.`,
+    };
   },
 
   pushToast: (msg, kind = 'info') => {
@@ -288,6 +456,7 @@ export const useMission = create<MissionStore>((set, get) => ({
   setScreen: (screen) => {
     if (get().settings.sound) sound.play('confirm');
     set({ screen });
+    scheduleSave();
   },
 
   setHangarTab: (hangarTab) => set({ hangarTab }),
@@ -321,12 +490,14 @@ export const useMission = create<MissionStore>((set, get) => ({
       sim: null,
       launch: null,
     });
+    scheduleSave();
   },
 
   setLauncher: (id) => {
     const design = { ...get().design, launcherId: id };
     const validate = design.missionId ? resolveDesign(design, lookupTables(), budgetCapFor(get().difficulty)) : null;
     set({ launcherId: id, design, validate });
+    scheduleSave();
   },
 
   setComponent: (cat, id) => {
@@ -355,6 +526,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     const validate = design.missionId ? resolveDesign(design, lookupTables(), budgetCapFor(get().difficulty)) : null;
     set({ design, builder, validate });
     if (get().settings.sound) sound.play('attach');
+    scheduleSave();
   },
 
   toggleRedundancy: (cat) => {
@@ -362,6 +534,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     const validate = design.missionId ? resolveDesign(design, lookupTables(), budgetCapFor(get().difficulty)) : null;
     set({ design, validate });
     if (get().settings.sound) sound.play('attach');
+    scheduleSave();
   },
 
   setPropellant: (kg) => {
@@ -370,10 +543,17 @@ export const useMission = create<MissionStore>((set, get) => ({
     const design = { ...get().design, propellantMassKg: Math.max(0, Math.min(cap, Math.round(kg))) };
     const validate = design.missionId ? resolveDesign(design, lookupTables(), budgetCapFor(get().difficulty)) : null;
     set({ design, validate });
+    scheduleSave();
   },
 
-  setAltitudeOffset: (km) => set({ altitudeOffsetKm: Math.max(-200, Math.min(400, km)) }),
-  setInclination: (deg) => set({ inclinationDeg: Math.max(0, Math.min(180, deg)) }),
+  setAltitudeOffset: (km) => {
+    set({ altitudeOffsetKm: Math.max(-200, Math.min(400, km)) });
+    scheduleSave();
+  },
+  setInclination: (deg) => {
+    set({ inclinationDeg: Math.max(0, Math.min(180, deg)) });
+    scheduleSave();
+  },
 
   setBuilderCategory: (c) => {
     const b = get().builder;
@@ -410,6 +590,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     const placed = { ...builder.placed, [cat]: { componentId: compId, x: builder.cursor.x, y: builder.cursor.y, w, h, rotated: builder.rotation } };
     set({ builder: { ...builder, placed } });
     if (settings.sound) sound.play('attach');
+    scheduleSave();
   },
 
   removePart: () => {
@@ -421,6 +602,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     }
     set({ builder: { ...builder, placed: { ...builder.placed, [cat]: null } } });
     if (settings.sound) sound.play('back');
+    scheduleSave();
   },
 
   rotatePart: () => {
@@ -449,6 +631,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     }
     set({ builder: { ...builder, placed } });
     if (settings.sound) sound.play('attach');
+    scheduleSave();
   },
 
   beginLaunch: () => {
@@ -481,6 +664,7 @@ export const useMission = create<MissionStore>((set, get) => ({
       inclinationDeg: get().inclinationDeg || mission.inclinationDeg,
     });
     if (settings.sound) { sound.play('beep'); sound.startRumble(); }
+    get().save();
   },
 
   skipLaunch: () => {
@@ -488,6 +672,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     if (!launch || launch.phase !== 'launch') return;
     set({ launch: { ...launch, phase: 'ops', progress: 1, countdown: 0, callout: 'ORBIT INSERTION' } });
     if (get().settings.sound) { sound.stopRumble(); sound.play('confirm'); }
+    scheduleSave();
   },
 
   tick: (dtDays) => {
@@ -505,6 +690,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     });
     set({ sim: next });
     if (next.failed || next.complete) get().endMission();
+    else scheduleSave();
   },
 
   endMission: () => {
@@ -583,6 +769,7 @@ export const useMission = create<MissionStore>((set, get) => ({
 
   newMission: () => {
     set({ screen: 'missionSelect', sim: null, launch: null, result: null });
+    scheduleSave();
   },
 
   dispatch: (cmd, ctx) => {
@@ -613,6 +800,7 @@ export const useMission = create<MissionStore>((set, get) => ({
         return;
       }
       set({ sim: res.state });
+      scheduleSave();
       return;
     }
 
@@ -689,7 +877,27 @@ export const useMission = create<MissionStore>((set, get) => ({
   },
 
   resetProgress: () => {
-    set({ progress: { ...DEFAULT_PROGRESS, unlockedTech: [STARTING_NODE] }, difficulty: 'tutorial', screen: 'home' });
+    set({
+      progress: { ...DEFAULT_PROGRESS, unlockedTech: [STARTING_NODE] },
+      difficulty: 'tutorial',
+      screen: 'home',
+      missionId: null,
+      launcherId: null,
+      design: { ...EMPTY_DESIGN, components: { ...EMPTY_DESIGN.components }, redundancy: { ...EMPTY_DESIGN.redundancy } },
+      builder: emptyBuilder(),
+      validate: null,
+      validationStale: false,
+      sim: null,
+      launch: null,
+      result: null,
+      altitudeOffsetKm: 0,
+      inclinationDeg: 0,
+    });
+    try {
+      // A reset campaign must not be resurrected from the rotating backup.
+      localStorage.removeItem(BACKUP_KEY);
+      localStorage.removeItem(LEGACY_SAVE_KEY);
+    } catch { /* storage unavailable */ }
     get().save();
     get().pushToast('Progress reset.', 'info');
   },

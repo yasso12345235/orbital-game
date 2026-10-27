@@ -1,5 +1,5 @@
 /** Screen 2 — Hangar/Profile: blueprint bay, real performance, refit preview. */
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   useMission, MISSIONS, COMPONENTS, LAUNCHERS, lookupTables, previewValidation,
 } from '../store';
@@ -576,6 +576,42 @@ function SystemPanel() {
   }, [listening, setKeybinding]);
 
   const binds = Object.entries(settings.keybindings);
+  const exportSave = useMission((s) => s.exportSave);
+  const importSave = useMission((s) => s.importSave);
+  const pushToast = useMission((s) => s.pushToast);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importNote, setImportNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleExport = () => {
+    try {
+      const blob = new Blob([exportSave()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      a.href = url;
+      a.download = `orbital-save-${stamp}.json`;
+      a.rel = 'noopener';
+      a.click();
+      URL.revokeObjectURL(url);
+      pushToast(t('exportProgress'), 'good');
+    } catch {
+      pushToast(t('saveImportFailed'), 'bad');
+    }
+  };
+
+  const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const res = importSave(await file.text());
+      setImportNote({ ok: res.ok, text: res.message });
+      pushToast(res.ok ? t('saveImported') : t('saveImportFailed'), res.ok ? 'good' : 'bad');
+    } catch {
+      setImportNote({ ok: false, text: lang === 'ar' ? 'تعذّر قراءة الملف.' : 'Could not read that file.' });
+      pushToast(t('saveImportFailed'), 'bad');
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -681,6 +717,44 @@ function SystemPanel() {
         <p className="mt-3 text-[10px] text-[var(--ma-muted)]">
           {lang === 'ar' ? 'Gamepad: A=تأكيد، B=رجوع، X=مسح، Y=تسريع، RT=إطلاق، LT=حماية، D-pad=تنقل.' : 'Gamepad: A=confirm, B=back, X=scan, Y=warp, RT=fire, LT=shield, D-pad=move.'}
         </p>
+      </HudFrame>
+
+      <HudFrame tag="SAVE BACKUP" tagAr="نسخة الحفظ" className="lg:col-span-2">
+        <p className="text-[11px] text-[var(--ma-muted)]">
+          {lang === 'ar'
+            ? 'يُحفظ تقدمك تلقائيًا في هذا المتصفح، بما في ذلك المهمة الجارية. صدّر ملفًا للاحتفاظ بنسخة أو لنقل الحملة إلى جهاز آخر.'
+            : 'Your progress autosaves in this browser, including the mission in flight. Export a file to keep a backup or move the campaign to another device.'}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" className="ma-btn-ghost" onClick={handleExport}>
+            {t('exportProgress')}
+          </button>
+          <button type="button" className="ma-btn-ghost" onClick={() => fileRef.current?.click()}>
+            {t('importProgress')}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImport}
+            aria-label={t('importProgress')}
+            data-testid="save-import-input"
+          />
+        </div>
+        <p className="mt-2 text-[10px] text-[var(--ma-muted)]">
+          {t('exportHint')} {t('importHint')}
+        </p>
+        {importNote && (
+          <p
+            className={`mt-2 text-[11px] ${importNote.ok ? 'text-[var(--ma-good)]' : 'text-[var(--ma-bad)]'}`}
+            role="status"
+            data-testid="save-import-note"
+            dir="ltr"
+          >
+            {importNote.text}
+          </p>
+        )}
       </HudFrame>
 
       <HudFrame tag="DATA NOTES" tagAr="ملاحظات البيانات" className="lg:col-span-2">

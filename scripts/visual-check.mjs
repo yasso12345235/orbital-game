@@ -109,7 +109,11 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 900 
 // Deterministic start: never inherit a developer's local save.
 await context.addInitScript(() => {
   try {
-    localStorage.clear();
+    // Clear once per tab session: a mid-run reload must see the save it wrote.
+    if (!sessionStorage.getItem('ma-visual-cleared')) {
+      localStorage.clear();
+      sessionStorage.setItem('ma-visual-cleared', '1');
+    }
   } catch {
     /* storage disabled */
   }
@@ -224,9 +228,46 @@ try {
       console.log('warp speed-up skipped:', e.message.split('\n')[0]);
     }
 
-    // End the mission → Results with the orbital replay
+    // v1.5 — a reload mid-mission must resume operations, not reset the run.
     try {
-      await page.getByRole('button', { name: /End mission now|إنهاء المهمة الآن/ }).first().click({ timeout: 6000 });
+      const persisted = await page.evaluate(() => {
+        const raw = localStorage.getItem('ma_save_v2');
+        return raw ? JSON.parse(raw) : null;
+      });
+      const run = persisted?.run ?? null;
+      check(
+        'autosave stores the live run',
+        persisted?.version === 2 && run?.screen === 'simulation' && run?.launch?.phase === 'ops' && !!run?.sim,
+        run?.sim ? `day ${run.sim.elapsedDays.toFixed(1)}` : 'no run',
+      );
+      check(
+        'autosave keeps the simulation clock',
+        (run?.sim?.elapsedDays ?? 0) > 0,
+        `day ${run?.sim?.elapsedDays ?? 0}`,
+      );
+
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForTimeout(1200);
+      await waitFor('[data-scene="orbit-ops"] canvas', 'ops canvas after reload', 30000);
+      await page.waitForTimeout(2400);
+      const activeNav = await page.evaluate(
+        () =>
+          document.querySelector('nav[aria-label="Screens"] .ma-navbtn.is-active')?.textContent?.trim() ?? '',
+      );
+      check('reload lands back on the operations screen', activeNav === 'Simulation', activeNav || 'none');
+      const resumedDay = await page.evaluate(() => {
+        const raw = localStorage.getItem('ma_save_v2');
+        return raw ? JSON.parse(raw)?.run?.sim?.elapsedDays ?? 0 : 0;
+      });
+      check('mission clock survives the reload', resumedDay > 0, `day ${Number(resumedDay).toFixed(1)}`);
+      await shot('07c-resume-after-reload');
+    } catch (e) {
+      console.log('resume check failed:', e.message.split('\n')[0]);
+      check('mid-mission reload resumes operations', false, e.message.split('\n')[0]);
+    }
+
+    // End the mission → Results with the orbital replay
+    try {      await page.getByRole('button', { name: /End mission now|إنهاء المهمة الآن/ }).first().click({ timeout: 6000 });
       await waitFor('[data-scene="results-replay"] canvas', 'results replay canvas', 25000);
       await page.waitForTimeout(2400);
       check('results replay renders canvas', (await countCanvases('[data-scene="results-replay"]')) >= 1);
@@ -273,6 +314,46 @@ try {
     await page.waitForTimeout(900);
     await page.getByRole('tab', { name: /system/i }).click();
     await page.waitForTimeout(600);
+
+    // v1.5 — backup UI: export writes a real file; re-import and corrupt import.
+    const exportBtn = page.getByRole('button', { name: /Export progress/ }).first();
+    const importBtn = page.getByRole('button', { name: /Import progress/ }).first();
+    check(
+      'hangar exposes save export/import',
+      (await exportBtn.count()) === 1 && (await importBtn.count()) === 1,
+    );
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 20000 }),
+      exportBtn.click(),
+    ]);
+    const exportedPath = await download.path();
+    check(
+      'export downloads a JSON save',
+      !!exportedPath && /\.json$/i.test(download.suggestedFilename()),
+      download.suggestedFilename(),
+    );
+
+    await page.setInputFiles('[data-testid="save-import-input"]', exportedPath ?? { name: 'missing.json', mimeType: 'application/json', buffer: Buffer.from('') });
+    await page.waitForTimeout(900);
+    const importNote =
+      (await page.locator('[data-testid="save-import-note"]').textContent()) ?? '';
+    check(
+      're-importing the export is accepted',
+      !!exportedPath && /Imported:/.test(importNote),
+      importNote.trim() || 'no export file',
+    );
+
+    await page.setInputFiles('[data-testid="save-import-input"]', {
+      name: 'broken.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{not json'),
+    });
+    await page.waitForTimeout(700);
+    const badNote =
+      (await page.locator('[data-testid="save-import-note"]').textContent()) ?? '';
+    check('a corrupt import is rejected safely', /not valid JSON/i.test(badNote), badNote.trim());
+
     await page.locator('select.ma-input').first().selectOption('ar');
     await page.waitForTimeout(1600);
     await shot('12-rtl-hangar');
@@ -309,6 +390,49 @@ try {
   } catch {
     /* nothing left to capture */
   }
+}
+
+/* ------------------------------------------- corrupt-save recovery drill */
+
+try {
+  const valid = await page.evaluate(() => localStorage.getItem('ma_save_v2'));
+  check('a valid v2 save exists for the corruption drill', !!valid);
+
+  // Seed a fresh context *before* the app boots: a corrupt primary plus the
+  // valid payload as the backup. A reload in the main tab cannot be used here
+  // because its pagehide flush would overwrite the injected corruption.
+  const recovery = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await recovery.addInitScript(
+    (raw) => {
+      localStorage.setItem('ma_save_v2', '{broken json');
+      if (raw) localStorage.setItem('ma_save_v2_backup', raw);
+    },
+    valid,
+  );
+  const rp = await recovery.newPage();
+  rp.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(`recovery console: ${m.text()}`);
+  });
+  rp.on('pageerror', (e) => consoleErrors.push(`recovery pageerror: ${e.message}`));
+  await rp.goto(BASE_URL, { waitUntil: 'load' });
+  await rp.waitForSelector('.ma-loadwarning', { timeout: 20000 });
+  const banner = (await rp.locator('.ma-loadwarning').innerText()).replace(/\s+/g, ' ');
+  const quarantined = await rp.evaluate(
+    () => localStorage.getItem('ma_save_v2_corrupt') === '{broken json',
+  );
+  check(
+    'corrupt save is quarantined and the backup is restored',
+    quarantined && /backup was restored/i.test(banner),
+    banner.slice(0, 90),
+  );
+  await rp.waitForTimeout(1600);
+  await rp.screenshot({ path: path.join(OUT, '18-save-recovery.png') });
+  screenshots.push(path.join(OUT, '18-save-recovery.png'));
+  await rp.close();
+  await recovery.close();
+} catch (e) {
+  console.log('corrupt-save drill failed:', e.message.split('\n')[0]);
+  check('corrupt save recovery drill', false, e.message.split('\n')[0]);
 }
 
 /* ------------------------------------------- reduced motion (fresh page) */

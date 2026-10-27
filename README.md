@@ -1,22 +1,48 @@
-# ORBITAL — Space Mission Lab
+﻿# ORBITAL — Space Mission Lab
 
 An educational space-mission game: design a spacecraft, pick a launcher, tune an orbit, fly the
 launch, operate the mission in real time, and get scored + debriefed — with the real physics shown
 at every step. Standalone app (no backend, no network, no accounts); bilingual Arabic/English.
 The visible shell is branded **ORBITAL — Space Mission Lab**; the in-world mission name remains
-the "Mission Architect Program" and save keys (`ma_save_v1`) stay stable across versions.
+the "Mission Architect Program" and save keys stay stable across versions (`ma_save_v1` is still
+read; new saves live in `ma_save_v2`).
 
 ```bash
 npm install         # once
 npm run dev         # http://localhost:5174
 npm run build       # production bundle in dist/ (typecheck + build)
-npm test            # 95 unit + integration tests
+npm test            # 127 unit + integration tests
 npm run typecheck   # strict TypeScript
+npm run test:visual # scripted EN/RTL/reduced-motion walkthrough (+ screenshots)
+npm run verify      # typecheck + unit tests + visual walkthrough
 npm run preview     # serve the production build locally
 ```
 
 Everything ships in the bundle: fonts (`@fontsource`), procedural planet textures drawn on canvas,
 synthesized Web Audio sounds, and JSON game data — so the game runs fully offline.
+
+### What's new in 1.5 — continuity (save v2, backup, verifiable builds)
+
+* **The mission survives a reload** — the run is persisted, not just the campaign: design, builder
+  placement, mission, orbit tuning and the live operations snapshot. Reloading mid-flight reopens
+  Simulation where you left off (a reload during the launch cinematic resumes in operations instead
+  of replaying it); Home's primary action becomes **Resume operations**.
+* **Versioned, defensive saves** — schema `v2` with `ma_save_v1` still migrated on read. Every value
+  is sanitised (unknown component/launcher/mission ids, impossible screens, malformed simulations,
+  out-of-range numbers), validation is always recomputed instead of trusted, and the persisted event
+  log is capped at 300 rows.
+* **Nothing is lost to a bad write** — the previous known-good save rotates into a backup key, an
+  unreadable primary is quarantined and the backup is restored with a visible on-screen notice.
+* **Coalesced autosave** — writes are throttled to one per ~0.9 s under the 10 Hz simulation tick and
+  flushed synchronously on `pagehide` / tab hide, so neither performance nor a hard close loses the run.
+* **Export / import** — Hangar → System exports the whole campaign (and run) as pretty JSON and
+  restores it from a file; corrupt, oversized (> 2 MB) and newer-schema files are rejected with a
+  readable message instead of crashing.
+* **Automation you can run** — `npm run test:visual` drives the real UI in Chrome (portable paths,
+  auto-starts Vite, deterministic storage, machine-readable `artifacts/visual-check/summary.json`,
+  non-zero exit on console errors) and now asserts mid-mission reload/resume and the export→import
+  roundtrip. Verification: **127/127 tests**, typecheck and build green, **18/18** visual checks,
+  **25** screenshots, zero console errors.
 
 ### What's new in 1.4 — ORBITAL "Space Mission Lab" shell upgrade
 

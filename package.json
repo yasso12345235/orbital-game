@@ -1,7 +1,7 @@
 {
   "name": "mission-architect",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.5.0",
   "description": "ORBITAL — Space Mission Lab (Mission Architect): educational space-mission game: design, launch, operate, debrief. Real physics, bilingual AR/EN, pixel command deck.",
   "type": "module",
   "scripts": {

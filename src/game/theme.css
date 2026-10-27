@@ -340,6 +340,30 @@ input.ma-range:focus-visible { outline: 2px solid var(--ma-accent); outline-offs
 }
 .ma-btn-ghost:hover { border-color: var(--ma-accent); color: var(--ma-accent); box-shadow: var(--ma-glow-sm); }
 
+/* Boot-time save banner (damaged save recovered / newer schema) */
+.ma-loadwarning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ma-warn) 48%, var(--ma-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ma-warn) 10%, var(--ma-panel));
+  color: var(--ma-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ma-loadwarning b {
+  display: block;
+  font-family: var(--ma-hud);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ma-warn);
+  margin-bottom: 2px;
+}
+.ma-loadwarning-ico { color: var(--ma-warn); display: flex; flex-shrink: 0; }
+
 /* Holographic card */
 .ma-card {
   background: linear-gradient(165deg, var(--ma-glass), rgba(5, 11, 31, 0.35));

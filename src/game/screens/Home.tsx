@@ -62,8 +62,11 @@ export function HomeScreen() {
   const setHangarTab = useMission((s) => s.setHangarTab);
   const progress = useMission((s) => s.progress);
   const missionId = useMission((s) => s.missionId);
+  const sim = useMission((s) => s.sim);
+  const launch = useMission((s) => s.launch);
   const settings = useMission((s) => s.settings);
   const setSetting = useMission((s) => s.setSetting);
+  const inFlight = !!sim && launch?.phase === 'ops';
 
   const initialFocus = useMemo(() => {
     if (!missionId) return 2; // Mars — the cinematic default
@@ -99,9 +102,11 @@ export function HomeScreen() {
     return () => sound.stopDrone();
   }, []);
 
-  /** Continue: resume the selected flight plan, otherwise open Mission Select. */
+  /** Continue: resume a live mission, else the flight plan, else Mission Select. */
   const continueMission = () => {
-    if (missionId) setScreen('builder');
+    const st = useMission.getState();
+    if (st.sim && st.launch?.phase === 'ops') setScreen('simulation');
+    else if (missionId) setScreen('builder');
     else setScreen('missionSelect');
   };
 
@@ -124,6 +129,9 @@ export function HomeScreen() {
   const menuSub = (key: string) => {
     switch (key) {
       case 'continue':
+        if (inFlight) {
+          return lang === 'ar' ? 'المهمة جارية — متابعة العمليات' : 'Mission in flight — resume operations';
+        }
         return currentMission
           ? (lang === 'ar' ? currentMission.nameAr ?? currentMission.name : currentMission.name)
           : (lang === 'ar' ? 'اختر خطة طيران أولاً' : 'Pick a flight plan first');
@@ -140,9 +148,11 @@ export function HomeScreen() {
     }
   };
 
-  const primary = currentMission
-    ? (lang === 'ar' ? 'متابعة الرحلة' : 'Resume flight plan')
-    : (lang === 'ar' ? 'بدء مهمة جديدة' : 'Start a new mission');
+  const primary = inFlight
+    ? (lang === 'ar' ? 'متابعة العمليات' : 'Resume operations')
+    : currentMission
+      ? (lang === 'ar' ? 'متابعة الرحلة' : 'Resume flight plan')
+      : (lang === 'ar' ? 'بدء مهمة جديدة' : 'Start a new mission');
 
   const statusChip = peekDone
     ? { tone: 'good' as const, text: t('completed') }
@@ -195,7 +205,7 @@ export function HomeScreen() {
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-3">
               <span className="ma-status" data-tone="accent"><i />{lang === 'ar' ? 'مركز التحكم متصل' : 'Mission control online'}</span>
-              <span className="ma-hudtag" dir="ltr">MISSION ARCHITECT PROGRAM · v1.4</span>
+              <span className="ma-hudtag" dir="ltr">MISSION ARCHITECT PROGRAM · v1.5</span>
             </div>
 
             <h1 className="ma-hero-word mt-6" dir="ltr">ORBITAL</h1>
