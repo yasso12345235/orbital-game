@@ -150,8 +150,12 @@ export function MissionSelectScreen() {
 
       {/* ------------------------------------------------ carousel strip */}
       <section className="relative">
+        <p className="ma-swipe-hint">
+          <span className="ma-swipe-hint-ico" aria-hidden>↔</span>
+          {t('swipeMissions')}
+        </p>
         <div
-          className="flex items-end gap-5 overflow-x-auto ma-scroll pb-6 pt-2 px-1 ma-floor"
+          className="ma-carousel flex items-end gap-5 overflow-x-auto ma-scroll pb-6 pt-2 px-1 ma-floor"
           role="listbox"
           aria-label="Mission carousel"
         >
@@ -166,7 +170,7 @@ export function MissionSelectScreen() {
                 role="option"
                 aria-selected={selected}
                 type="button"
-                className={`group shrink-0 flex flex-col items-center gap-2 transition-all duration-500 ${shake === m.id ? 'ma-shake' : ''}`}
+                className={`ma-carousel-item group shrink-0 flex flex-col items-center gap-2 transition-all duration-500 ${shake === m.id ? 'ma-shake' : ''}`}
                 style={{ opacity: locked ? 0.55 : 1 }}
                 onClick={() => selectMissionTry(m.id)}
               >

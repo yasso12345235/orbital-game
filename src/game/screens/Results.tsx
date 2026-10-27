@@ -170,12 +170,12 @@ export function ResultsScreen() {
       </HudFrame>
 
       <div className="flex flex-wrap gap-3 justify-center">
-        <button type="button" className="px-8 py-3 rounded-full bg-white text-[#06122c] font-bold text-xs uppercase tracking-widest" onClick={newMission}>
+        <button type="button" className="ma-tap px-8 py-3 rounded-full bg-white text-[#06122c] font-bold text-xs uppercase tracking-widest" onClick={newMission}>
           {t('newMission')}
         </button>
         <button
           type="button"
-          className="px-6 py-3 rounded-full border border-[var(--ma-accent)] text-[var(--ma-accent)] text-xs uppercase tracking-widest"
+          className="ma-tap px-6 py-3 rounded-full border border-[var(--ma-accent)] text-[var(--ma-accent)] text-xs uppercase tracking-widest"
           onClick={() => {
             if (result.missionId) {
               selectMission(result.missionId);
@@ -185,7 +185,7 @@ export function ResultsScreen() {
         >
           {t('retry')}
         </button>
-        <button type="button" className="px-6 py-3 rounded-full border border-[var(--ma-line)] text-xs uppercase tracking-widest" onClick={() => setScreen('hangar')}>
+        <button type="button" className="ma-tap px-6 py-3 rounded-full border border-[var(--ma-line)] text-xs uppercase tracking-widest" onClick={() => setScreen('hangar')}>
           {t('toHangar')}
         </button>
       </div>

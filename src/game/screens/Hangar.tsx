@@ -161,7 +161,7 @@ export function HangarScreen() {
                 role="tab"
                 aria-selected={on}
                 type="button"
-                className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-[9px] uppercase tracking-[0.1em] transition-colors ${on
+                className={`ma-tap flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-[9px] uppercase tracking-[0.1em] transition-colors ${on
                   ? 'border-[color-mix(in_srgb,var(--ma-accent)_55%,transparent)] bg-[color-mix(in_srgb,var(--ma-accent)_11%,transparent)] text-[var(--ma-accent)]'
                   : 'border-[var(--ma-line)] text-[var(--ma-muted)] hover:text-[var(--ma-text)] hover:border-[color-mix(in_srgb,var(--ma-accent)_35%,var(--ma-line))]'}`}
                 onClick={() => onTab(tb.id)}
@@ -633,7 +633,7 @@ function SystemPanel() {
               <option value="director">{lang === 'ar' ? 'مدير المهمة' : 'Mission Director'}</option>
             </select>
           </label>
-          <label className="flex items-center justify-between gap-3">
+          <label className="ma-settingrow flex items-center justify-between gap-3">
             <span>{t('quality')}</span>
             <select className="ma-input" value={settings.quality} onChange={(e) => setSetting('quality', e.target.value as 'low' | 'medium' | 'high')} aria-label={t('quality')}>
               <option value="low">Low</option>
@@ -641,7 +641,7 @@ function SystemPanel() {
               <option value="high">High</option>
             </select>
           </label>
-          <label className="flex items-center justify-between gap-3">
+          <label className="ma-settingrow flex items-center justify-between gap-3">
             <span>{t('sound')}</span>
             <input type="checkbox" checked={settings.sound} onChange={(e) => setSetting('sound', e.target.checked)} aria-label={t('sound')} />
           </label>
@@ -669,15 +669,15 @@ function SystemPanel() {
             ))}
           </div>
 
-          <label className="flex items-center justify-between gap-3">
+          <label className="ma-settingrow flex items-center justify-between gap-3">
             <span>{t('reducedMotion')}</span>
             <input type="checkbox" checked={settings.reducedMotion} onChange={(e) => setSetting('reducedMotion', e.target.checked)} aria-label={t('reducedMotion')} />
           </label>
-          <label className="flex items-center justify-between gap-3">
+          <label className="ma-settingrow flex items-center justify-between gap-3">
             <span>{t('learnMode')}</span>
             <input type="checkbox" checked={settings.learnMode} onChange={(e) => setSetting('learnMode', e.target.checked)} aria-label={t('learnMode')} />
           </label>
-          <label className="flex items-center justify-between gap-3">
+          <label className="ma-settingrow flex items-center justify-between gap-3">
             <span>{t('teacherMode')}</span>
             <input type="checkbox" checked={settings.teacherMode} onChange={(e) => setSetting('teacherMode', e.target.checked)} aria-label={t('teacherMode')} />
           </label>
@@ -693,7 +693,7 @@ function SystemPanel() {
             </ul>
           </div>
         )}
-        <button type="button" className="mt-4 px-3 py-2 rounded-lg border border-[var(--ma-bad)] text-[var(--ma-bad)] text-xs uppercase tracking-wider" onClick={resetProgress}>
+        <button type="button" className="ma-tap mt-4 px-3 py-2 rounded-lg border border-[var(--ma-bad)] text-[var(--ma-bad)] text-xs uppercase tracking-wider" onClick={resetProgress}>
           {t('resetProgress')}
         </button>
       </HudFrame>
@@ -705,7 +705,7 @@ function SystemPanel() {
             <button
               key={cmd}
               type="button"
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs ${listening === cmd ? 'border-[var(--ma-warn)] text-[var(--ma-warn)]' : 'border-[var(--ma-line)] hover:border-[var(--ma-accent)]'}`}
+              className={`ma-tap flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs ${listening === cmd ? 'border-[var(--ma-warn)] text-[var(--ma-warn)]' : 'border-[var(--ma-line)] hover:border-[var(--ma-accent)]'}`}
               onClick={() => setListening(cmd)}
               aria-label={`${cmd} bound to ${code}`}
             >

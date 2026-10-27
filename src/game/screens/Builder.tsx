@@ -67,7 +67,7 @@ export function BuilderScreen() {
                 <li key={c.id}>
                   <button
                     type="button"
-                    className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${active ? 'border-[var(--ma-accent)] bg-[color-mix(in_srgb,var(--ma-accent)_10%,transparent)]' : 'border-[var(--ma-line)] hover:border-[var(--ma-accent)]'}`}
+                    className={`ma-tap w-full text-left px-3 py-2 rounded-lg border transition-colors ${active ? 'border-[var(--ma-accent)] bg-[color-mix(in_srgb,var(--ma-accent)_10%,transparent)]' : 'border-[var(--ma-line)] hover:border-[var(--ma-accent)]'}`}
                     onClick={() => setBuilderCategory(c.id)}
                     aria-pressed={active}
                   >
@@ -98,7 +98,7 @@ export function BuilderScreen() {
                       <button
                         type="button"
                         disabled={locked}
-                        className="w-full text-left"
+                        className="ma-tap w-full text-left"
                         onClick={() => setComponent(c.id, comp.id)}
                         aria-label={comp.name}
                         title={comp.description}
@@ -119,7 +119,7 @@ export function BuilderScreen() {
                         {locked && <span className="text-[10px] text-[var(--ma-warn)]">🔒 {t('locked')}</span>}
                       </button>
                       {chosen && (
-                        <label className="flex items-center gap-2 mt-1.5 text-[10px] text-[var(--ma-muted)]">
+                        <label className="ma-taprow flex items-center gap-2 mt-1.5 text-[10px] text-[var(--ma-muted)]">
                           <input type="checkbox" checked={red} onChange={() => toggleRedundancy(c.id)} aria-label={`${t('redundancy')} ${comp.name}`} />
                           {t('redundancy')} (+{comp.redundancyMassKg ?? comp.massKg} kg)
                         </label>
@@ -230,7 +230,7 @@ export function BuilderScreen() {
           <div className="flex gap-2 mt-3">
             <button
               type="button"
-              className="flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase tracking-wider hover:border-[var(--ma-accent)]"
+              className="ma-tap flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase tracking-wider hover:border-[var(--ma-accent)]"
               onClick={() => setScreen('launcher')}
             >
               {t('next')}: {t('launcher')} →
@@ -238,7 +238,7 @@ export function BuilderScreen() {
             <button
               type="button"
               disabled={!validate?.go}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider ${validate?.go ? 'bg-[var(--ma-accent)] text-[#04122a]' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
+              className={`ma-tap px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider ${validate?.go ? 'bg-[var(--ma-accent)] text-[#04122a]' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
               onClick={beginLaunch}
             >
               {t('launch')}

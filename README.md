@@ -14,12 +14,37 @@ npm run build       # production bundle in dist/ (typecheck + build)
 npm test            # 127 unit + integration tests
 npm run typecheck   # strict TypeScript
 npm run test:visual # scripted EN/RTL/reduced-motion walkthrough (+ screenshots)
-npm run verify      # typecheck + unit tests + visual walkthrough
+npm run test:mobile # 375/768 responsive walkthrough (overflow, 44px targets, scroll rails)
+npm run verify      # typecheck + unit tests + visual + mobile walkthroughs
 npm run preview     # serve the production build locally
 ```
 
 Everything ships in the bundle: fonts (`@fontsource`), procedural planet textures drawn on canvas,
 synthesized Web Audio sounds, and JSON game data — so the game runs fully offline.
+
+### What's new in 1.6 — phone & tablet responsiveness
+
+* **One-row screen rail** — the nine screen links no longer wrap into three rows on a 375px
+  phone. They live on their own horizontally scrollable rail with snap points, edge fades and
+  auto-centering of the active destination, so a direct jump (GO / Resume) always shows where
+  you are. Every link is a 44px hit target.
+* **Touch targets everywhere** — nav, AI/Keys chips, Home quick bar and destination dots,
+  builder rows and redundancy rows, launcher/orbit actions, Hangar tabs, keybinding rows,
+  export/import, settings rows and Results actions all reach 44×44. Checkbox rows use the
+  full-width 44px label as the target. The shell header is 62–66px on Home and ~112–120px
+  with the rail, down from ~200px when the nav wrapped.
+* **Carousel + tech tree affordances** — the 12-mission carousel gains scroll snap, a visible
+  “Swipe to browse missions” hint at ≤900px and keeps every mission reachable; the tech tree
+  keeps its 880px design width but gains a “Drag sideways to pan the tree” hint instead of
+  silently clipping.
+* **Bilingual mobile layouts** — the same 375/768 passes re-run after switching to Arabic
+  (RTL): no page overflow, one-row rail, 44px targets and a scrolling carousel.
+* **Automated gate** — `npm run test:mobile` drives real Chrome at 375×812 and 768×1024
+  through Home → Mission Select → Builder → Launcher → Orbit → launch → Simulation →
+  Results → Tech Tree → Hangar/System, asserting `scrollWidth ≤ viewport`, a single-row rail,
+  ≥44px targets, real horizontal scrolling (carousel + tree) and zero console errors. It
+  writes **26** screenshots plus `artifacts/mobile-check/summary.json`, exits non-zero on
+  failure and runs as part of `npm run verify`. Verification: **116/116 mobile checks**.
 
 ### What's new in 1.5 — continuity (save v2, backup, verifiable builds)
 
@@ -284,8 +309,10 @@ ESA/JPL mission pages, textbook equations).
 **Gamepad:** A confirm · B back · X scan · Y warp · RT fire · LT safe mode · L1/R1 timeline scrub ·
 D-pad navigation. Polled at ~11 Hz with edge detection.
 
-**Touch/pointer:** every control is a real button with ≥44 px targets, press feedback, haptics where
-supported (`navigator.vibrate`), and the Pixel Command Deck adapts to one-hand use.
+**Touch/pointer:** every persistent control is a real button with ≥44 px targets at phone and
+tablet widths, press feedback, haptics where supported (`navigator.vibrate`); the screen rail,
+mission carousel and tech tree are native horizontal scrollers with snap points/fades and visible
+hints, and the header stays one compact row plus the rail instead of wrapping.
 
 **Accessibility:** full `aria-label`/`role` coverage (meters, tablist, meter, progressbar, status),
 keyboard-only playable, `prefers-reduced-motion` + an explicit reduced-motion setting, sound can be

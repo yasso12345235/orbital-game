@@ -113,13 +113,13 @@ export function OrbitScreen() {
               : (lang === 'ar' ? 'التصميم غير جاهز بعد.' : 'Design not cleared yet.')}
           </p>
           <div className="flex gap-2 mt-3">
-            <button type="button" className="flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase hover:border-[var(--ma-accent)]" onClick={() => setScreen('launcher')}>
+            <button type="button" className="ma-tap flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase hover:border-[var(--ma-accent)]" onClick={() => setScreen('launcher')}>
               ← {t('launcher')}
             </button>
             <button
               type="button"
               disabled={!canGo}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase ${canGo ? 'bg-[var(--ma-good)] text-[#04122a]' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
+              className={`ma-tap flex-1 py-2 rounded-lg text-xs font-bold uppercase ${canGo ? 'bg-[var(--ma-good)] text-[#04122a]' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
               onClick={beginLaunch}
             >
               {t('launch')} 🚀

@@ -118,6 +118,14 @@ export default function MissionApp() {
     return `${lang === 'ar' ? m.nameAr ?? m.name : m.name}${ln ? ` · ${ln}` : ''}`;
   }, [missionId, lang, t]);
 
+  // Keep the active destination visible inside the horizontally scrolling
+  // screen rail (direct jumps from GO/Resume can land on an off-screen item).
+  const navRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const active = navRef.current?.querySelector<HTMLElement>('.ma-navbtn.is-active');
+    active?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [screen]);
+
   const screens: Record<string, JSX.Element> = {
     home: <HomeScreen />,
     hangar: <HangarScreen />,
@@ -143,26 +151,27 @@ export default function MissionApp() {
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* Top bar — floating glass chrome */}
-      <header className={screen === 'home' ? 'ma-menubar mb-4' : 'ma-topbar mb-4 flex items-center justify-between gap-3 flex-wrap'}>
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            type="button"
-            className="ma-logo"
-            onClick={() => setScreen('home')}
-            aria-label={t('gameTitle')}
-          >
-            <span className="ma-logo-orbit"><Icon name="orbit" size={19} /></span>
-            <span className="ma-logo-copy">
-              <span className="ma-logo-word">{t('gameTitle')}</span>
-              <span className="ma-logo-sub">{t('tagline')}</span>
-            </span>
-          </button>
-          <span className="hidden lg:block h-7 w-px bg-[var(--ma-line)]" aria-hidden />
-          <span className="text-[11px] text-[var(--ma-muted)] hidden lg:block truncate max-w-[300px]">{subtitle}</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      <header className={screen === 'home' ? 'ma-menubar mb-4' : 'ma-topbar mb-4'}>
+        <div className="ma-topbar-main">
+          <div className="ma-brand">
+            <button
+              type="button"
+              className="ma-logo"
+              onClick={() => setScreen('home')}
+              aria-label={t('gameTitle')}
+            >
+              <span className="ma-logo-orbit"><Icon name="orbit" size={19} /></span>
+              <span className="ma-logo-copy">
+                <span className="ma-logo-word">{t('gameTitle')}</span>
+                <span className="ma-logo-sub">{t('tagline')}</span>
+              </span>
+            </button>
+            <span className="hidden lg:block h-7 w-px bg-[var(--ma-line)]" aria-hidden />
+            <span className="text-[11px] text-[var(--ma-muted)] hidden lg:block truncate max-w-[300px]">{subtitle}</span>
+          </div>
+
           {screen !== 'home' && (
-            <nav className="flex items-center gap-0.5 flex-wrap" aria-label="Screens">
+            <nav ref={navRef} className="ma-screennav" aria-label="Screens">
               {(['home', 'hangar', 'missionSelect', 'builder', 'launcher', 'orbit', 'simulation', 'results', 'techTree'] as const).map((s) => (
                 s === 'simulation' && !useMission.getState().sim ? null : (
                   <button
@@ -178,13 +187,16 @@ export default function MissionApp() {
               ))}
             </nav>
           )}
-          {screen === 'home' && (
-            <span className="ma-status hidden md:inline-flex" data-tone="accent">
-              <i /> MISSION ARCHITECT PROGRAM · v1.5
-            </span>
-          )}
-          <AIChip />
-          <ShortcutSheet />
+
+          <div className="ma-topbar-tools">
+            {screen === 'home' && (
+              <span className="ma-status hidden md:inline-flex" data-tone="accent">
+                <i /> MISSION ARCHITECT PROGRAM · v1.6
+              </span>
+            )}
+            <AIChip />
+            <ShortcutSheet />
+          </div>
         </div>
       </header>
 

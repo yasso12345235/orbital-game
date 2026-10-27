@@ -114,10 +114,10 @@ export function LauncherScreen() {
               </p>
               <p className="text-[10px] text-[var(--ma-muted)] mt-2">{l.source}</p>
               <div className="flex gap-2 mt-4">
-                <button type="button" className="flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase hover:border-[var(--ma-accent)]" onClick={() => back('builder')}>
+                <button type="button" className="ma-tap flex-1 py-2 rounded-lg border border-[var(--ma-line)] text-xs uppercase hover:border-[var(--ma-accent)]" onClick={() => back('builder')}>
                   ← {t('builder')}
                 </button>
-                <button type="button" className="flex-1 py-2 rounded-lg bg-[var(--ma-accent)] text-[#04122a] text-xs font-bold uppercase" onClick={() => setScreen('orbit')}>
+                <button type="button" className="ma-tap flex-1 py-2 rounded-lg bg-[var(--ma-accent)] text-[#04122a] text-xs font-bold uppercase" onClick={() => setScreen('orbit')}>
                   {t('next')}: {t('orbit')} →
                 </button>
               </div>

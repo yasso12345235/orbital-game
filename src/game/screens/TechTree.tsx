@@ -85,6 +85,10 @@ export function TechTreeScreen() {
           </div>
         </div>
 
+        <p className="ma-swipe-hint">
+          <span className="ma-swipe-hint-ico" aria-hidden>↔</span>
+          {t('panTechTree')}
+        </p>
         <div className="relative overflow-x-auto ma-scroll">
           <div className="pointer-events-none absolute inset-0 opacity-45" aria-hidden>
             <Suspense fallback={null}>
@@ -229,7 +233,7 @@ export function TechTreeScreen() {
                     : check.reason === 'credits'
                       ? (lang === 'ar' ? 'رصيد غير كافٍ' : 'Not enough credits')
                       : (lang === 'ar' ? 'اعتماد سابق مطلوب' : 'Prerequisite needed')}
-                  className={`mt-2 w-full py-2 rounded-lg text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${check.ok
+                  className={`ma-tap mt-2 w-full py-2 rounded-lg text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${check.ok
                     ? 'ma-pill-accent'
                     : 'border border-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
                   onClick={() => onUnlock(n.id)}

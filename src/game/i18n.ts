@@ -192,6 +192,8 @@ const en = {
   explainMore: 'Explain more',
   aiHelper: 'Mission Control AI',
   aiPlaceholder: 'Ask about mass, power, dv, cost…',
+  swipeMissions: 'Swipe to browse missions',
+  panTechTree: 'Drag sideways to pan the tree',
 
   // Events
   solarStorm: 'Solar storm',
@@ -383,6 +385,8 @@ const ar: Record<StringKey, string> = {
   explainMore: 'اشرح أكثر',
   aiHelper: 'ذكاء مركز التحكم',
   aiPlaceholder: 'اسأل عن الكتلة، الطاقة، دلتا-في، التكلفة…',
+  swipeMissions: 'اسحب لاستعراض المهام',
+  panTechTree: 'اسحب جانبيًا لتحريك الشجرة',
 
   solarStorm: 'عاصفة شمسية',
   debris: 'اقتران حطام',

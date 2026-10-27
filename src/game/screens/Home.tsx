@@ -205,7 +205,7 @@ export function HomeScreen() {
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-3">
               <span className="ma-status" data-tone="accent"><i />{lang === 'ar' ? 'مركز التحكم متصل' : 'Mission control online'}</span>
-              <span className="ma-hudtag" dir="ltr">MISSION ARCHITECT PROGRAM · v1.5</span>
+              <span className="ma-hudtag" dir="ltr">MISSION ARCHITECT PROGRAM · v1.6</span>
             </div>
 
             <h1 className="ma-hero-word mt-6" dir="ltr">ORBITAL</h1>
@@ -299,11 +299,11 @@ export function HomeScreen() {
           {/* Lab / review routes stay reachable but quiet. */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] uppercase tracking-[0.18em] text-[var(--ma-muted)]">
             <span className="ma-hudtag" dir="ltr">{lang === 'ar' ? 'أدوات المختبر' : 'LAB TOOLS'}</span>
-            <button type="button" className="hover:text-[var(--ma-accent)] transition-colors" aria-label={t('styleGuide')} onClick={() => setScreen('styleGuide')}>
+            <button type="button" className="ma-tap inline-flex items-center hover:text-[var(--ma-accent)] transition-colors" aria-label={t('styleGuide')} onClick={() => setScreen('styleGuide')}>
               {t('styleGuide')}
             </button>
             <span className="h-3 w-px bg-[var(--ma-line)]" aria-hidden />
-            <button type="button" className="hover:text-[var(--ma-accent)] transition-colors" aria-label="Playground" onClick={() => setScreen('playground')}>
+            <button type="button" className="ma-tap inline-flex items-center hover:text-[var(--ma-accent)] transition-colors" aria-label="Playground" onClick={() => setScreen('playground')}>
               {lang === 'ar' ? 'الملعب 3D' : 'Playground'}
             </button>
           </div>
@@ -398,7 +398,7 @@ export function HomeScreen() {
       </div>
 
       {/* Mobile destination switcher (the desktop arrows live in the card). */}
-      <div className="relative z-10 flex items-center justify-center gap-2 pb-4 sm:hidden">
+      <div className="relative z-10 flex items-center justify-center gap-0.5 pb-4 sm:hidden">
         {PEEK.map((p, i) => (
           <button
             key={p.target}
@@ -406,13 +406,17 @@ export function HomeScreen() {
             onClick={() => setFocus(i)}
             aria-label={lang === 'ar' ? p.labelAr : p.label}
             aria-pressed={focus === i}
-            className="h-2 rounded-full transition-all"
-            style={{
-              width: focus === i ? 26 : 8,
-              background: focus === i ? accentForTarget(p.target) : 'var(--ma-line)',
-              opacity: focus === i ? 1 : 0.7,
-            }}
-          />
+            className="ma-dotbtn"
+          >
+            <span
+              className="ma-dot"
+              style={{
+                width: focus === i ? 26 : 8,
+                background: focus === i ? accentForTarget(p.target) : 'var(--ma-line)',
+                opacity: focus === i ? 1 : 0.7,
+              }}
+            />
+          </button>
         ))}
       </div>
     </div>
