@@ -13,8 +13,16 @@ import { EffectsRig, type EffectsProps } from './post/EffectsRig';
 
 function webglAvailable(): boolean {
   try {
+    if (!window.WebGLRenderingContext) return false;
     const c = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
+    const gl = (c.getContext('webgl2') || c.getContext('webgl')) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    // Release the probe context immediately. Browsers cap the number of live WebGL
+    // contexts (~16) and a leaked probe on every scene mount starves later canvases,
+    // which then come up with a lost context — postprocessing's EffectComposer reads
+    // `getContextAttributes().alpha` and throws. The probe must not stay alive.
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
   } catch {
     return false;
   }

@@ -4,7 +4,8 @@
  * on fast motion / warp streaks; DepthOfField only when a focus distance is
  * supplied (Builder focus). Every pass scales with the quality tier.
  */
-import { useMemo, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useThree } from '@react-three/fiber';
 import {
   Bloom,
   BrightnessContrast,
@@ -38,12 +39,30 @@ export function EffectsRig({
   grade = true,
 }: EffectsProps) {
   const q = useVisualQuality();
+  const gl = useThree((s) => s.gl);
+  // A lost context makes `getContextAttributes()` return null, which makes
+  // postprocessing's EffectComposer throw while mounting. Detect it up front and
+  // re-arm automatically after a restore instead of crashing the whole canvas.
+  const [contextReady, setContextReady] = useState(() => !!gl.getContextAttributes());
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const onLost = () => setContextReady(false);
+    const onRestored = () => setContextReady(!!gl.getContextAttributes());
+    el.addEventListener('webglcontextlost', onLost);
+    el.addEventListener('webglcontextrestored', onRestored);
+    return () => {
+      el.removeEventListener('webglcontextlost', onLost);
+      el.removeEventListener('webglcontextrestored', onRestored);
+    };
+  }, [gl]);
+
   const caOffset = useMemo(
     () => new Vector2(0.00035 * (0.2 + motion), 0.00035 * (0.2 + motion)),
     [motion],
   );
 
-  if (!q.post) return null;
+  if (!q.post || !contextReady) return null;
 
   const passes: ReactElement[] = [];
   if (q.bloom) {
