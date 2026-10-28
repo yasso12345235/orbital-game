@@ -424,6 +424,10 @@ export const HOURS_PER_SECOND = 0.5;
 /** Walking speed in metres/second at upgrade level 0. */
 export const WALK_SPEED = 7;
 
+/** Rover unlock cost and speed bonus. All tuning stays in this data file. */
+export const ROVER_COST: Partial<Record<ResourceId, number>> = { regolith: 12, ore: 6, crystal: 2 };
+export const ROVER_SPEED_BONUS = 0.6; // +60% surface speed when rover is unlocked
+
 export const STARTING_INVENTORY: Record<ResourceId, number> = {
   ice: 6,
   regolith: 5,

@@ -36,6 +36,7 @@ import {
   repairSuit as engineRepairSuit,
   resupply as engineResupply,
   tickSurface,
+  unlockRover,
   upgradeSuit as engineUpgradeSuit,
   type SurfaceNode,
   type SurfaceState,
@@ -191,6 +192,7 @@ interface MissionStore {
   surfaceResupply: () => void;
   surfaceRename: (callsign: string) => void;
   surfaceSuitColor: (color: string) => void;
+  surfaceUnlockRover: () => void;
   endExpedition: () => void;
 
   // meta
@@ -1037,6 +1039,21 @@ export const useMission = create<MissionStore>((set, get) => ({
     scheduleSave();
   },
 
+  surfaceUnlockRover: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = unlockRover(surface);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('confirm');
+    scheduleSave();
+  },
+
   endExpedition: () => {
     const { surface, progress } = get();
     if (!surface) {
@@ -1128,7 +1145,7 @@ export const useMission = create<MissionStore>((set, get) => ({
     }
   },
 
-  setSetting: (k, v) => {
+  setSetting: <K extends keyof MissionSettings>(k: K, v: MissionSettings[K]) => {
     const settings = { ...get().settings, [k]: v };
     set({ settings });
     if (k === 'sound') sound.setMuted(!v);

@@ -497,6 +497,7 @@ function sanitizeSurface(raw: unknown): SurfaceState | null {
     taken,
     gathered: Math.round(num(raw.gathered, 0, 0, 1e6)),
     walked: num(raw.walked, 0, 0, 1e9),
+    roverUnlocked: bool(raw.roverUnlocked, false),
     weather: (typeof raw.weather === 'string' && ['clear', 'dust_storm', 'radiation_spell', 'cold_snap', 'heat_wave'].includes(raw.weather)) ? (raw.weather as WeatherId) : 'clear',
     weatherHours: num(raw.weatherHours, 0, 0, 1e6),
     status: raw.status === 'rescued' ? 'rescued' : 'active',

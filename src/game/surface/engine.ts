@@ -15,6 +15,7 @@ import {
   STARTING_INVENTORY,
   UPGRADES,
   WEATHER_EFFECTS,
+  ROVER_COST,
   XP,
   levelForXp,
   surfaceProfileFor,
@@ -74,6 +75,8 @@ export interface SurfaceState {
   weather: WeatherId;
   /** Hours elapsed in the current weather spell. */
   weatherHours: number;
+  /** Rover unlocked status — increases surface speed. */
+  roverUnlocked: boolean;
   status: 'active' | 'rescued';
   log: SurfaceLogEntry[];
 }
@@ -172,6 +175,7 @@ export function createSurface(input: CreateSurfaceInput): SurfaceState {
     walked: 0,
     weather: 'clear',
     weatherHours: 0,
+    roverUnlocked: false,
     status: 'active',
     log: [
       {
@@ -542,6 +546,28 @@ export function levelOf(state: SurfaceState): number {
 /** Days survived, used by the debrief and the HUD sol counter. */
 export function solOf(state: SurfaceState): number {
   return Math.floor(state.hours / 24) + 1;
+}
+
+export function unlockRover(state: SurfaceState): ActionResult {
+  if (state.roverUnlocked) {
+    return { ok: false, state, message: 'Rover already unlocked.' };
+  }
+  if (!canAfford(state, ROVER_COST)) {
+    return { ok: false, state, message: 'Not enough materials to unlock the rover.' };
+  }
+  const next: SurfaceState = {
+    ...state,
+    inventory: pay(state, ROVER_COST),
+    roverUnlocked: true,
+    xp: state.xp + XP.upgrade,
+    log: pushLog(state, 'Surface rover unlocked.', 'good'),
+  };
+  return {
+    ok: true,
+    state: next,
+    message: 'Surface rover unlocked',
+    events: [{ msg: 'Rover ready for exploration.', kind: 'good' }],
+  };
 }
 
 export function moduleSlotPosition(slot: number): { x: number; z: number } {

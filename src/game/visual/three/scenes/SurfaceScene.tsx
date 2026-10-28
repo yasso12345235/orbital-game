@@ -36,7 +36,7 @@ import {
   type SurfaceNode,
   type SurfaceState,
 } from '../../../surface/engine';
-import { BASE_RADIUS, MODULES, RESOURCES, WALK_SPEED, type SurfaceProfile } from '../../../surface/model';
+import { BASE_RADIUS, MODULES, RESOURCES, ROVER_SPEED_BONUS, WALK_SPEED, type SurfaceProfile } from '../../../surface/model';
 
 export interface SurfaceInput {
   forward: number;
@@ -152,7 +152,7 @@ function Astronaut({ surface, input, onPose, onNear, nodes, pose }: AstronautPro
   const armR = useRef<Mesh>(null);
   const lamp = useRef<MeshStandardMaterial>(null);
 
-  const speed = WALK_SPEED * suitEffects(surface).speed;
+  const speed = WALK_SPEED * suitEffects(surface).speed * (surface.roverUnlocked ? 1 + ROVER_SPEED_BONUS : 1);
   const phase = useRef(0);
   const moving = useRef(0);
   const lastSync = useRef(0);

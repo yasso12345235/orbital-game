@@ -33,6 +33,7 @@ import {
   MODULES,
   RESOURCES,
   RESOURCE_IDS,
+  ROVER_COST,
   SURFACE_PROFILES,
   UPGRADES,
   costParts,
@@ -104,6 +105,7 @@ export function SurfaceScreen() {
   const surfaceResupply = useMission((s) => s.surfaceResupply);
   const surfaceRename = useMission((s) => s.surfaceRename);
   const surfaceSuitColor = useMission((s) => s.surfaceSuitColor);
+  const surfaceUnlockRover = useMission((s) => s.surfaceUnlockRover);
   const endExpedition = useMission((s) => s.endExpedition);
   const setScreen = useMission((s) => s.setScreen);
 
@@ -509,11 +511,24 @@ export function SurfaceScreen() {
             >
               {lang === 'ar' ? 'إصلاح البدلة (2 خام + 2 تربة)' : 'REPAIR SUIT (2 ore + 2 regolith)'}
             </button>
+            <button
+              type="button"
+              className={`ma-pill ma-pill-sm ${surface.roverUnlocked ? 'ma-pill-ghost' : 'ma-pill-accent'}`}
+              disabled={surface.roverUnlocked || surface.status !== 'active'}
+              onClick={surfaceUnlockRover}
+            >
+              {surface.roverUnlocked
+                ? (lang === 'ar' ? 'المركبة مفتوحة' : 'ROVER UNLOCKED')
+                : lang === 'ar'
+                  ? `فتح القفل للمركبة (${costParts(ROVER_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`
+                  : `UNLOCK ROVER (${costParts(ROVER_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`}
+            </button>
             <div className="mt-auto grid grid-cols-2 gap-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ma-muted)]">
               <span>{lang === 'ar' ? 'وحدات' : 'MODULES'} <b className="ma-num text-[var(--ma-gold)]">{surface.modules.length}/6</b></span>
               <span>{lang === 'ar' ? 'عيّنات' : 'SAMPLES'} <b className="ma-num text-[var(--ma-gold)]">{surface.gathered}</b></span>
               <span>{lang === 'ar' ? 'مسافة' : 'WALKED'} <b className="ma-num text-[var(--ma-gold)]">{surface.walked.toFixed(0)} m</b></span>
               <span>{lang === 'ar' ? 'خبرة' : 'XP'} <b className="ma-num text-[var(--ma-gold)]">{surface.xp}</b></span>
+              <span>{lang === 'ar' ? 'المركبة' : 'ROVER'} <b className={`ma-num text-[var(--ma-gold)] ${surface.roverUnlocked ? 'text-[var(--ma-good)]' : ''}`}>{surface.roverUnlocked ? (lang === 'ar' ? 'مفتوحة' : 'UNLOCKED') : (lang === 'ar' ? 'مغلقة' : 'LOCKED')}</b></span>
             </div>
           </div>
         </section>
