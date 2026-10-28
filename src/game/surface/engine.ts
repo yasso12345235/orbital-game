@@ -18,12 +18,14 @@ import {
   ROVER_COST,
   XP,
   levelForXp,
+  pickSolGoal,
   surfaceProfileFor,
   type ModuleKind,
   type ResourceId,
   type SurfaceProfile,
   type UpgradeId,
   type WeatherId,
+  type SolGoal,
 } from './model';
 
 export interface SurfaceNode {
@@ -77,6 +79,12 @@ export interface SurfaceState {
   weatherHours: number;
   /** Rover unlocked status — increases surface speed. */
   roverUnlocked: boolean;
+  /** Current sol (24h) survival objective. */
+  currentSolGoal: SolGoal | null;
+  /** IDs of completed sol goals. */
+  solGoalsCompleted: string[];
+  /** Last sol number for which a goal was assigned. */
+  lastSol: number;
   status: 'active' | 'rescued';
   log: SurfaceLogEntry[];
 }
@@ -176,6 +184,9 @@ export function createSurface(input: CreateSurfaceInput): SurfaceState {
     weather: 'clear',
     weatherHours: 0,
     roverUnlocked: false,
+    currentSolGoal: null,
+    solGoalsCompleted: [],
+    lastSol: 0,
     status: 'active',
     log: [
       {
@@ -288,6 +299,18 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   const weatherChanged = nextWeather !== state.weather;
   const effect = WEATHER_EFFECTS[nextWeather];
 
+  // Sol (24h) goal assignment: pick a new goal when the sol changes.
+  const currentSol = Math.floor((state.hours + hours) / 24);
+  const solChanged = currentSol !== state.lastSol && currentSol > 0;
+  let currentSolGoal = state.currentSolGoal;
+  let solGoalsCompleted = state.solGoalsCompleted;
+  if (solChanged || !currentSolGoal) {
+    currentSolGoal = pickSolGoal(state.seed, currentSol);
+    if (!solGoalsCompleted.includes(currentSolGoal.id)) {
+      solGoalsCompleted = [...solGoalsCompleted];
+    }
+  }
+
   const cold = clamp(-temp / 120, 0, 1.6);
   const heat = clamp((temp - 30) / 130, 0, 3.2);
 
@@ -358,6 +381,9 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     radiation,
     integrity,
     charge,
+    currentSolGoal,
+    solGoalsCompleted,
+    lastSol: currentSol,
   };
 
   // Weather change announcement.
@@ -373,6 +399,12 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
               ? 'Cold snap'
               : 'Heat wave';
     events.push({ msg: `Weather changed: ${label}.`, kind: 'warn' });
+  }
+
+  // Sol goal change announcement.
+  if (solChanged && currentSolGoal) {
+    const label = currentSolGoal.en;
+    events.push({ msg: `New sol goal: ${label}.`, kind: 'info' });
   }
 
   const crossed = (before: number, after: number, limit: number) => before > limit && after <= limit;
@@ -567,6 +599,44 @@ export function unlockRover(state: SurfaceState): ActionResult {
     state: next,
     message: 'Surface rover unlocked',
     events: [{ msg: 'Rover ready for exploration.', kind: 'good' }],
+  };
+}
+
+export function checkSolGoal(state: SurfaceState): { completed: boolean; goal: SolGoal | null } {
+  const goal = state.currentSolGoal;
+  if (!goal) return { completed: false, goal: null };
+  if (state.solGoalsCompleted.includes(goal.id)) return { completed: true, goal };
+
+  if (goal.resource) {
+    const have = state.inventory[goal.resource] ?? 0;
+    return { completed: have >= goal.target, goal };
+  }
+  if (goal.module) {
+    return { completed: hasModule(state, goal.module), goal };
+  }
+  return { completed: false, goal };
+}
+
+export function completeSolGoal(state: SurfaceState): ActionResult {
+  const goal = state.currentSolGoal;
+  if (!goal) {
+    return { ok: false, state, message: 'No active sol goal.' };
+  }
+  if (state.solGoalsCompleted.includes(goal.id)) {
+    return { ok: false, state, message: 'Sol goal already completed.' };
+  }
+  const next: SurfaceState = {
+    ...state,
+    solGoalsCompleted: [...state.solGoalsCompleted, goal.id],
+    xp: state.xp + goal.xp,
+    currentSolGoal: null,
+    log: pushLog(state, `Sol goal complete: ${goal.en}. (+${goal.xp} XP)`, 'good'),
+  };
+  return {
+    ok: true,
+    state: next,
+    message: `Sol goal complete: ${goal.en}`,
+    events: [{ msg: `Sol goal complete: ${goal.en}. (+${goal.xp} XP)`, kind: 'good' }],
   };
 }
 

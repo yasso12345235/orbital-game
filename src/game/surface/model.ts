@@ -428,6 +428,42 @@ export const WALK_SPEED = 7;
 export const ROVER_COST: Partial<Record<ResourceId, number>> = { regolith: 12, ore: 6, crystal: 2 };
 export const ROVER_SPEED_BONUS = 0.6; // +60% surface speed when rover is unlocked
 
+/* ------------------------------------------------------------------ sol goals */
+
+/** A daily survival objective, assigned per sol (24 local hours). */
+export interface SolGoal {
+  id: string;
+  en: string;
+  ar: string;
+  /** How many of the target resource/units must be gathered/built. */
+  target: number;
+  /** Resource id to gather, or null if not a gather goal. */
+  resource: ResourceId | null;
+  /** Module kind to build, or null if not a build goal. */
+  module: ModuleKind | null;
+  /** XP reward on completion. */
+  xp: number;
+}
+
+export const SOL_GOALS: SolGoal[] = [
+  { id: 'gather_ice', en: 'Collect 5 water ice', ar: 'اجمع 5 وحدات جليد', target: 5, resource: 'ice', module: null, xp: 25 },
+  { id: 'gather_regolith', en: 'Collect 8 regolith', ar: 'اجمع 8 وحدات تربة سطحية', target: 8, resource: 'regolith', module: null, xp: 20 },
+  { id: 'gather_ore', en: 'Collect 4 metal ore', ar: 'اجمع 4 وحدات خام معدني', target: 4, resource: 'ore', module: null, xp: 30 },
+  { id: 'gather_crystal', en: 'Collect 3 crystal', ar: 'اجمع 3 وحدات بلورات', target: 3, resource: 'crystal', module: null, xp: 35 },
+  { id: 'gather_biomass', en: 'Collect 4 organics', ar: 'اجمع 4 وحدات مواد عضوية', target: 4, resource: 'biomass', module: null, xp: 25 },
+  { id: 'build_o2gen', en: 'Build an O₂ generator', ar: 'ابنِ مولّد أكسجين', target: 1, resource: null, module: 'o2gen', xp: 45 },
+  { id: 'build_extractor', en: 'Build a water extractor', ar: 'ابنِ مستخرج مياه', target: 1, resource: null, module: 'extractor', xp: 45 },
+  { id: 'build_greenhouse', en: 'Build a hydroponics bay', ar: 'ابنِ ذراعًا مائيًا', target: 1, resource: null, module: 'greenhouse', xp: 45 },
+  { id: 'build_heater', en: 'Build a thermal hut', ar: 'ابنِ كوخًا حراريًا', target: 1, resource: null, module: 'heater', xp: 45 },
+];
+
+/** Pick a deterministic sol goal from seed + sol number. */
+export function pickSolGoal(seed: number, sol: number): SolGoal {
+  const roll = ((hashString(`${seed}:sol:${sol}`) >>> 0) / 0xffffffff);
+  const idx = Math.floor(roll * SOL_GOALS.length);
+  return SOL_GOALS[Math.min(idx, SOL_GOALS.length - 1)];
+}
+
 export const STARTING_INVENTORY: Record<ResourceId, number> = {
   ice: 6,
   regolith: 5,
@@ -454,4 +490,14 @@ export function xpIntoLevel(xp: number): { level: number; into: number; span: nu
   const level = levelForXp(xp);
   const base = (level - 1) * 120;
   return { level, into: Math.max(0, xp - base), span: 120 };
+}
+
+/** Small deterministic string hash (FNV-1a), used for seeded random picks. */
+export function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }

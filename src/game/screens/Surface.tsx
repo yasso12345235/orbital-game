@@ -16,6 +16,8 @@ import {
   atBase,
   capacityLeft,
   canAfford,
+  checkSolGoal,
+  completeSolGoal,
   distanceToBase,
   hasModule,
   inventoryTotal,
@@ -39,6 +41,7 @@ import {
   costParts,
   type ModuleKind,
   type ResourceId,
+  type SolGoal,
   type UpgradeId,
   type WeatherId,
 } from '../surface/model';
@@ -106,6 +109,8 @@ export function SurfaceScreen() {
   const surfaceRename = useMission((s) => s.surfaceRename);
   const surfaceSuitColor = useMission((s) => s.surfaceSuitColor);
   const surfaceUnlockRover = useMission((s) => s.surfaceUnlockRover);
+  const surfaceCheckSolGoal = useMission((s) => s.surfaceCheckSolGoal);
+  const surfaceCompleteSolGoal = useMission((s) => s.surfaceCompleteSolGoal);
   const endExpedition = useMission((s) => s.endExpedition);
   const setScreen = useMission((s) => s.setScreen);
 
@@ -242,6 +247,11 @@ export function SurfaceScreen() {
               <div className="ma-num" style={{ color: surface.weather === 'clear' ? 'var(--ma-good)' : 'var(--ma-warn)' }}>
                 {lang === 'ar' ? WEATHER_LABELS[surface.weather].ar : WEATHER_LABELS[surface.weather].en}
               </div>
+              {surface.currentSolGoal && (
+                <div className="ma-num" style={{ color: 'var(--ma-accent)' }} title={surface.currentSolGoal.en}>
+                  {lang === 'ar' ? surface.currentSolGoal.ar : surface.currentSolGoal.en}
+                </div>
+              )}
               <div className="ma-num" style={{ color: inBase ? 'var(--ma-good)' : 'var(--ma-muted)' }}>
                 {inBase ? (lang === 'ar' ? 'داخل القاعدة' : 'AT BASE') : `${dist.toFixed(0)} m`}
               </div>
@@ -523,6 +533,29 @@ export function SurfaceScreen() {
                   ? `فتح القفل للمركبة (${costParts(ROVER_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`
                   : `UNLOCK ROVER (${costParts(ROVER_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`}
             </button>
+            {surface.currentSolGoal && (
+              <div className="mt-2 p-3 rounded-lg border border-[color-mix(in_srgb,var(--ma-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ma-accent)_10%,transparent)]">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--ma-accent)]">
+                    {lang === 'ar' ? 'هدف اليوم الشمسي' : 'SOL GOAL'}
+                  </span>
+                  <button
+                    type="button"
+                    className="ma-pill ma-pill-sm ma-pill-accent"
+                    onClick={surfaceCompleteSolGoal}
+                    disabled={!checkSolGoal(surface).completed}
+                  >
+                    {lang === 'ar' ? 'إكمال' : 'COMPLETE'}
+                  </button>
+                </div>
+                <p className="text-[11px] leading-relaxed text-[var(--ma-text)]">
+                  {lang === 'ar' ? surface.currentSolGoal.ar : surface.currentSolGoal.en}
+                </p>
+                <div className="text-[9px] text-[var(--ma-muted)]">
+                  {checkSolGoal(surface).completed ? (lang === 'ar' ? 'جاهز للإكمال' : 'Ready to complete') : ''}
+                </div>
+              </div>
+            )}
             <div className="mt-auto grid grid-cols-2 gap-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ma-muted)]">
               <span>{lang === 'ar' ? 'وحدات' : 'MODULES'} <b className="ma-num text-[var(--ma-gold)]">{surface.modules.length}/6</b></span>
               <span>{lang === 'ar' ? 'عيّنات' : 'SAMPLES'} <b className="ma-num text-[var(--ma-gold)]">{surface.gathered}</b></span>

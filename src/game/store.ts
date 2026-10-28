@@ -37,11 +37,13 @@ import {
   resupply as engineResupply,
   tickSurface,
   unlockRover,
+  checkSolGoal,
+  completeSolGoal,
   upgradeSuit as engineUpgradeSuit,
   type SurfaceNode,
   type SurfaceState,
 } from './surface/engine';
-import type { ModuleKind, UpgradeId } from './surface/model';
+import type { ModuleKind, UpgradeId, SolGoal } from './surface/model';
 
 export type ScreenId =
   | 'home' | 'hangar' | 'missionSelect' | 'builder' | 'launcher'
@@ -193,6 +195,8 @@ interface MissionStore {
   surfaceRename: (callsign: string) => void;
   surfaceSuitColor: (color: string) => void;
   surfaceUnlockRover: () => void;
+  surfaceCheckSolGoal: () => { completed: boolean; goal: SolGoal | null };
+  surfaceCompleteSolGoal: () => void;
   endExpedition: () => void;
 
   // meta
@@ -1043,6 +1047,27 @@ export const useMission = create<MissionStore>((set, get) => ({
     const surface = get().surface;
     if (!surface) return;
     const res = unlockRover(surface);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('confirm');
+    scheduleSave();
+  },
+
+  surfaceCheckSolGoal: () => {
+    const surface = get().surface;
+    if (!surface) return { completed: false, goal: null };
+    return checkSolGoal(surface);
+  },
+
+  surfaceCompleteSolGoal: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = completeSolGoal(surface);
     if (!res.ok) {
       get().pushToast(res.message, 'warn');
       if (get().settings.sound) sound.play('error');
