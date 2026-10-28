@@ -238,7 +238,7 @@ export function BuilderScreen() {
             <button
               type="button"
               disabled={!validate?.go}
-              className={`ma-tap px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider ${validate?.go ? 'bg-[var(--ma-accent)] text-[#04122a]' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
+              className={`ma-tap px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider ${validate?.go ? 'ma-cta-gold' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed'}`}
               onClick={beginLaunch}
             >
               {t('launch')}

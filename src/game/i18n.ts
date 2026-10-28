@@ -50,6 +50,8 @@ const en = {
   simulation: 'Simulation',
   results: 'Results',
   techTree: 'Tech Tree',
+  descent: 'Descent',
+  surface: 'Surface Ops',
   styleGuide: 'Style Guide',
   system: 'System',
 
@@ -251,6 +253,8 @@ const ar: Record<StringKey, string> = {
   simulation: 'المحاكاة',
   results: 'النتائج',
   techTree: 'شجرة التقنية',
+  descent: 'الهبوط',
+  surface: 'عمليات السطح',
   styleGuide: 'دليل الأنماط',
   system: 'النظام',
 

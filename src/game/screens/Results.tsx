@@ -4,6 +4,7 @@ import { useMission, MISSIONS, lookupTables } from '../store';
 import { useLang, useT } from '../hooks';
 import { Bi, HudFrame, Kpi, PanelTag, fmt } from '../components/controls';
 import { sound } from '../audio';
+import { surfaceProfileFor } from '../surface/model';
 import type { SimEventEntry } from '@engine';
 
 /** v3 step 8 — orbital replay of the finished mission (lazy; R3F stays out of index). */
@@ -18,6 +19,9 @@ export function ResultsScreen() {
   const newMission = useMission((s) => s.newMission);
   const setScreen = useMission((s) => s.setScreen);
   const selectMission = useMission((s) => s.selectMission);
+  const surface = useMission((s) => s.surface);
+  const descent = useMission((s) => s.descent);
+  const startExpedition = useMission((s) => s.startExpedition);
   const endDay = useMission((s) => s.sim?.elapsedDays ?? 0);
   const [shown, setShown] = useState(0);
 
@@ -115,6 +119,71 @@ export function ResultsScreen() {
         <KpiCard label={t('innovation')} value={result.score.innovation.toFixed(1)} max={10} detail={result.survived ? 'nominal' : 'reduced'} />
       </section>
 
+      {/* Next phase — leave orbit and land on the chosen world. */}
+      <section className="ma-panel ma-expedition p-5">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <PanelTag ar="المرحلة التالية" en="NEXT PHASE · SURFACE" />
+            <h3 className="ma-title mt-2 text-xl">
+              {surface && surface.status === 'active'
+                ? (lang === 'ar' ? 'بعثة سطحية جارية' : 'Surface expedition in progress')
+                : (lang === 'ar' ? 'اهبط وتَعش على السطح' : 'Land and survive on the surface')}
+            </h3>
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--ma-muted)]">
+              {(() => {
+                const p = surfaceProfileFor(mission?.target);
+                return lang === 'ar'
+                  ? `${p.nameAr} · جذب ${p.gravity.toFixed(2)} م/ث² · ${p.hazardAr}`
+                  : `${p.nameEn} · gravity ${p.gravity.toFixed(2)} m/s² · ${p.hazardEn}`;
+              })()}
+            </p>
+            {surface && (
+              <p className="mt-2 text-[11px] text-[var(--ma-gold)]">
+                {lang === 'ar'
+                  ? `${surface.callsign} · ${surface.modules.length} وحدة · ${surface.gathered} عيّنة`
+                  : `${surface.callsign} · ${surface.modules.length} modules · ${surface.gathered} samples`}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {descent?.phase === 'flying' ? (
+              <button
+                type="button"
+                className="ma-cta-gold ma-tap rounded-full px-7 py-3 text-xs font-bold uppercase tracking-widest"
+                onClick={() => setScreen('descent')}
+              >
+                {lang === 'ar' ? 'متابعة الهبوط' : 'RESUME DESCENT'}
+              </button>
+            ) : surface && surface.status === 'active' ? (
+              <>
+                <button
+                  type="button"
+                  className="ma-cta-gold ma-tap rounded-full px-7 py-3 text-xs font-bold uppercase tracking-widest"
+                  onClick={() => setScreen('surface')}
+                >
+                  {lang === 'ar' ? 'متابعة عمليات السطح' : 'RESUME SURFACE OPS'}
+                </button>
+                <button
+                  type="button"
+                  className="ma-tap rounded-full border border-[var(--ma-line)] px-5 py-3 text-xs uppercase tracking-widest"
+                  onClick={startExpedition}
+                >
+                  {lang === 'ar' ? 'هبوط جديد' : 'NEW DESCENT'}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="ma-cta-gold ma-tap rounded-full px-7 py-3 text-xs font-bold uppercase tracking-widest"
+                onClick={startExpedition}
+              >
+                {lang === 'ar' ? 'ابدأ بعثة السطح' : 'BEGIN SURFACE EXPEDITION'}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Failure / debrief */}
         <HudFrame tag="DEBRIEF" tagAr="التقرير">
@@ -170,12 +239,12 @@ export function ResultsScreen() {
       </HudFrame>
 
       <div className="flex flex-wrap gap-3 justify-center">
-        <button type="button" className="ma-tap px-8 py-3 rounded-full bg-white text-[#06122c] font-bold text-xs uppercase tracking-widest" onClick={newMission}>
+        <button type="button" className="ma-tap ma-cta-gold px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest" onClick={newMission}>
           {t('newMission')}
         </button>
         <button
           type="button"
-          className="ma-tap px-6 py-3 rounded-full border border-[var(--ma-accent)] text-[var(--ma-accent)] text-xs uppercase tracking-widest"
+          className="ma-tap px-6 py-3 rounded-full border border-[rgba(233,195,124,0.55)] text-[var(--ma-gold-hi)] text-xs uppercase tracking-widest"
           onClick={() => {
             if (result.missionId) {
               selectMission(result.missionId);

@@ -26,6 +26,16 @@ import type {
   ScreenId,
 } from './store';
 import { STARTING_NODE, TECH_NODES } from './tech';
+import type { SurfaceState, BuiltModule } from './surface/engine';
+import {
+  MODULES,
+  RESOURCE_IDS,
+  SURFACE_PROFILES,
+  UPGRADES,
+  type ModuleKind,
+  type ResourceId,
+  type UpgradeId,
+} from './surface/model';
 import {
   COMPONENTS,
   MISSIONS,
@@ -50,10 +60,26 @@ export const RESUMABLE_SCREENS: ReadonlySet<ScreenId> = new Set<ScreenId>([
   'launcher',
   'orbit',
   'simulation',
+  'surface',
 ]);
 
-export const CATEGORY_LIST: ComponentCategory[] = [
-  'bus',
+const ALL_SCREENS: ReadonlySet<ScreenId> = new Set<ScreenId>([
+  'home',
+  'hangar',
+  'missionSelect',
+  'builder',
+  'launcher',
+  'orbit',
+  'simulation',
+  'results',
+  'techTree',
+  'styleGuide',
+  'playground',
+  'descent',
+  'surface',
+]);
+
+export const CATEGORY_LIST: ComponentCategory[] = [  'bus',
   'power',
   'propulsion',
   'comms',
@@ -137,6 +163,10 @@ export interface PersistedGame {
   progress: MissionProgress;
   difficulty: DifficultyId;
   run: RunSnapshot | null;
+  /** Planetary expedition; independent of the finished mission run. */
+  surface: SurfaceState | null;
+  /** Last screen, so a surface save can resume on the surface. */
+  screen: ScreenId;
 }
 
 export interface SaveInput {
@@ -152,6 +182,7 @@ export interface SaveInput {
   settings: MissionSettings;
   progress: MissionProgress;
   difficulty: DifficultyId;
+  surface?: SurfaceState | null;
 }
 
 export type ParseSource = 'v2' | 'v1' | 'none';
@@ -385,6 +416,91 @@ function sanitizeSim(raw: unknown): SimState | null {
   };
 }
 
+function sanitizeSurface(raw: unknown): SurfaceState | null {
+  if (!isObject(raw)) return null;
+  const target = str(raw.target);
+  if (!SURFACE_PROFILES[target]) return null;
+
+  const clamp01to100 = (v: unknown, fallback: number) => num(v, fallback, 0, 100);
+  const upgrades = { o2: 0, thermal: 0, shield: 0, boots: 0, cargo: 0, solar: 0 } as Record<UpgradeId, number>;
+  if (isObject(raw.upgrades)) {
+    for (const def of UPGRADES) {
+      upgrades[def.id] = Math.round(num((raw.upgrades as Record<string, unknown>)[def.id], 0, 0, def.maxLevel));
+    }
+  }
+
+  const inventory = { ice: 0, regolith: 0, ore: 0, crystal: 0, biomass: 0 } as Record<ResourceId, number>;
+  if (isObject(raw.inventory)) {
+    for (const id of RESOURCE_IDS) {
+      inventory[id] = Math.round(num((raw.inventory as Record<string, unknown>)[id], 0, 0, 1e6));
+    }
+  }
+
+  const modules: BuiltModule[] = [];
+  if (Array.isArray(raw.modules)) {
+    const seen = new Set<ModuleKind>();
+    for (const m of raw.modules) {
+      if (!isObject(m)) continue;
+      const kind = m.kind;
+      if (typeof kind !== 'string' || !MODULES.some((d) => d.id === kind)) continue;
+      if (seen.has(kind as ModuleKind)) continue;
+      seen.add(kind as ModuleKind);
+      modules.push({ kind: kind as ModuleKind, slot: Math.round(num(m.slot, modules.length, 0, 5)) });
+      if (modules.length >= 6) break;
+    }
+  }
+
+  const taken = Array.isArray(raw.taken)
+    ? [...new Set(raw.taken.filter((id): id is number => typeof id === 'number' && Number.isInteger(id) && id >= 0 && id < 500))].slice(0, 500)
+    : [];
+
+  const log = Array.isArray(raw.log)
+    ? raw.log
+        .filter(isObject)
+        .map((e) => ({
+          h: num(e.h, 0, 0, 1e6),
+          msg: str(e.msg).slice(0, 200),
+          kind: (e.kind === 'good' || e.kind === 'warn' || e.kind === 'bad' ? e.kind : 'info') as
+            | 'info'
+            | 'good'
+            | 'warn'
+            | 'bad',
+        }))
+        .filter((e) => e.msg.length > 0)
+        .slice(-30)
+    : [];
+
+  const rawColor = str(raw.suitColor, '#e9c37c');
+  const suitColor = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#e9c37c';
+  const callsign = str(raw.callsign, 'NOVA').trim().toUpperCase().slice(0, 14) || 'NOVA';
+
+  return {
+    target,
+    callsign,
+    suitColor,
+    seed: Math.round(num(raw.seed, 1, 0, 0xffffffff)),
+    x: num(raw.x, 0, -90, 90),
+    z: num(raw.z, 0, -90, 90),
+    hours: num(raw.hours, 0, 0, 1e6),
+    o2: clamp01to100(raw.o2, 100),
+    water: clamp01to100(raw.water, 100),
+    food: clamp01to100(raw.food, 100),
+    warmth: clamp01to100(raw.warmth, 100),
+    radiation: clamp01to100(raw.radiation, 0),
+    integrity: clamp01to100(raw.integrity, 100),
+    charge: clamp01to100(raw.charge, 100),
+    xp: Math.round(num(raw.xp, 0, 0, 1e6)),
+    upgrades,
+    modules,
+    inventory,
+    taken,
+    gathered: Math.round(num(raw.gathered, 0, 0, 1e6)),
+    walked: num(raw.walked, 0, 0, 1e9),
+    status: raw.status === 'rescued' ? 'rescued' : 'active',
+    log,
+  };
+}
+
 function sanitizeRun(raw: unknown): RunSnapshot | null {
   if (!isObject(raw)) return null;
   const missionId = str(raw.missionId);
@@ -413,6 +529,8 @@ function sanitizeRun(raw: unknown): RunSnapshot | null {
 
   let screen = RESUMABLE_SCREENS.has(raw.screen as ScreenId) ? (raw.screen as ScreenId) : 'builder';
   if (screen === 'simulation' && (!sim || launch?.phase !== 'ops')) screen = 'builder';
+  // The surface screen only makes sense with a persisted expedition.
+  if (screen === 'surface') screen = 'missionSelect';
 
   const rawLauncher = str(raw.launcherId);
 
@@ -462,6 +580,8 @@ export function createSave(input: SaveInput): PersistedGame {
     progress: input.progress,
     difficulty: input.difficulty,
     run,
+    surface: input.surface ? { ...input.surface, log: input.surface.log.slice(-30) } : null,
+    screen: input.surface && input.screen === 'descent' ? 'surface' : input.screen,
   };
 }
 
@@ -507,6 +627,10 @@ export function parseSave(raw: string | null | undefined): ParseResult {
       ? (parsed.difficulty as DifficultyId)
       : 'tutorial',
     run: version >= 2 ? sanitizeRun(parsed.run) : null,
+    surface: version >= 2 ? sanitizeSurface(parsed.surface) : null,
+    screen: version >= 2 && ALL_SCREENS.has(parsed.screen as ScreenId)
+      ? (parsed.screen as ScreenId)
+      : 'home',
   };
 
   return {

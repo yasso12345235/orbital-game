@@ -27,10 +27,43 @@ import {
   parseSave,
   type PersistedGame,
 } from './save';
+import {
+  buildModule as engineBuildModule,
+  collectNode as engineCollectNode,
+  createSurface,
+  moveSurvivor,
+  renameSurvivor,
+  repairSuit as engineRepairSuit,
+  resupply as engineResupply,
+  tickSurface,
+  upgradeSuit as engineUpgradeSuit,
+  type SurfaceNode,
+  type SurfaceState,
+} from './surface/engine';
+import type { ModuleKind, UpgradeId } from './surface/model';
 
 export type ScreenId =
   | 'home' | 'hangar' | 'missionSelect' | 'builder' | 'launcher'
-  | 'orbit' | 'simulation' | 'results' | 'techTree' | 'styleGuide' | 'playground';
+  | 'orbit' | 'simulation' | 'results' | 'techTree' | 'styleGuide' | 'playground'
+  | 'descent' | 'surface';
+
+export interface DescentState {
+  target: string;
+  /** Metres above the pad. */
+  altitude: number;
+  /** Downward velocity, m/s. */
+  vy: number;
+  /** Lateral position, m. */
+  x: number;
+  /** Lateral velocity, m/s. */
+  vx: number;
+  /** Remaining propellant, 0–100. */
+  fuel: number;
+  phase: 'flying' | 'landed' | 'crashed';
+  attempts: number;
+  /** Touchdown speed of the last attempt, m/s. */
+  touchdown: number;
+}
 
 export interface MissionSettings {
   lang: Lang;
@@ -107,6 +140,10 @@ interface MissionStore {
   aiOpen: boolean;
   /** Which tab the Hangar should open on (set by the main menu quick links). */
   hangarTab: HangarTab;
+  /** Planetary expedition — null until the team leaves orbit. */
+  surface: SurfaceState | null;
+  /** Landing guidance state; transient (never persisted mid-descent). */
+  descent: DescentState | null;
 
   // navigation & config
   setScreen: (s: ScreenId) => void;
@@ -137,6 +174,24 @@ interface MissionStore {
   endMission: () => void;
   newMission: () => void;
   dispatch: (cmd: CommandName, ctx?: { playerInitiated?: boolean }) => void;
+
+  // planetary expedition
+  startExpedition: () => void;
+  setDescent: (patch: Partial<DescentState>) => void;
+  landExpedition: (touchdown: number, fuelLeft: number) => void;
+  failDescent: (touchdown: number) => void;
+  retryDescent: () => void;
+  abortExpedition: () => void;
+  surfaceTick: (hours: number) => void;
+  surfacePose: (x: number, z: number) => void;
+  surfaceCollect: (node: SurfaceNode) => void;
+  surfaceBuild: (kind: ModuleKind) => void;
+  surfaceUpgrade: (id: UpgradeId) => void;
+  surfaceRepair: () => void;
+  surfaceResupply: () => void;
+  surfaceRename: (callsign: string) => void;
+  surfaceSuitColor: (color: string) => void;
+  endExpedition: () => void;
 
   // meta
   setSetting: <K extends keyof MissionSettings>(k: K, v: MissionSettings[K]) => void;
@@ -170,6 +225,7 @@ interface HydratedRun {
   altitudeOffsetKm: number;
   inclinationDeg: number;
   validate: ValidationResult | null;
+  surface: SurfaceState | null;
 }
 
 /**
@@ -238,8 +294,16 @@ function hydrateRun(game: PersistedGame | null): HydratedRun {
   const validate = missionId
     ? resolveDesign(design, lookupTables(), budgetCapFor(game?.difficulty ?? 'tutorial'))
     : null;
+  const surface = game?.surface ?? null;
+  // A save written on the surface (or mid-descent) resumes the expedition even
+  // though the finished mission run itself is not kept.
+  const savedScreen = game?.screen;
+  const screen: ScreenId =
+    surface && (savedScreen === 'surface' || savedScreen === 'descent')
+      ? 'surface'
+      : run?.screen ?? 'home';
   return {
-    screen: run?.screen ?? 'home',
+    screen,
     missionId,
     launcherId: run?.launcherId || null,
     design,
@@ -249,6 +313,7 @@ function hydrateRun(game: PersistedGame | null): HydratedRun {
     altitudeOffsetKm: run?.altitudeOffsetKm ?? 0,
     inclinationDeg: run?.inclinationDeg ?? 0,
     validate,
+    surface,
   };
 }
 
@@ -365,6 +430,7 @@ export const useMission = create<MissionStore>((set, get) => ({
   aiOpen: false,
   hangarTab: 'hangar',
   loadWarning: loaded.warning,
+  descent: null,
 
   save: () => {
     const s = get();
@@ -381,6 +447,7 @@ export const useMission = create<MissionStore>((set, get) => ({
       settings: s.settings,
       progress: s.progress,
       difficulty: s.difficulty,
+      surface: s.surface,
     });
     try {
       // Keep a rotating backup of the last known-good save (throttled so the
@@ -412,6 +479,7 @@ export const useMission = create<MissionStore>((set, get) => ({
         settings: s.settings,
         progress: s.progress,
         difficulty: s.difficulty,
+        surface: s.surface,
       }),
     );
   },
@@ -430,8 +498,8 @@ export const useMission = create<MissionStore>((set, get) => ({
       difficulty: game.difficulty,
       ...hydrated,
       // A campaign-only file (no in-flight run) should not yank the player off
-      // the screen they imported from; a run-bearing file navigates to it.
-      screen: game.run ? hydrated.screen : get().screen,
+      // the screen they imported from; a run-bearing or surface file navigates.
+      screen: game.run || hydrated.surface ? hydrated.screen : get().screen,
       validationStale: false,
       result: null,
       toasts: [],
@@ -489,6 +557,8 @@ export const useMission = create<MissionStore>((set, get) => ({
       inclinationDeg: mission.inclinationDeg,
       sim: null,
       launch: null,
+      surface: null,
+      descent: null,
     });
     scheduleSave();
   },
@@ -768,8 +838,228 @@ export const useMission = create<MissionStore>((set, get) => ({
   },
 
   newMission: () => {
-    set({ screen: 'missionSelect', sim: null, launch: null, result: null });
+    set({ screen: 'missionSelect', sim: null, launch: null, result: null, surface: null, descent: null });
     scheduleSave();
+  },
+
+  /* ---------------------------------------------------- planetary expedition */
+
+  startExpedition: () => {
+    const { result, missionId } = get();
+    const id = result?.missionId ?? missionId;
+    if (!id) return;
+    const mission = MISSIONS.find((m) => m.id === id);
+    const target = mission?.target ?? 'earth';
+    const surface = createSurface({ target, seed: Date.now() & 0x7fffffff });
+    set({
+      surface,
+      descent: {
+        target,
+        altitude: 800,
+        vy: 10,
+        x: 0,
+        vx: 0,
+        fuel: 100,
+        phase: 'flying',
+        attempts: 0,
+        touchdown: 0,
+      },
+      screen: 'descent',
+    });
+    if (get().settings.sound) sound.play('warp');
+    get().save();
+  },
+
+  setDescent: (patch) => {
+    const d = get().descent;
+    if (!d) return;
+    set({ descent: { ...d, ...patch } });
+  },
+
+  landExpedition: (touchdown, fuelLeft) => {
+    const { surface, descent } = get();
+    if (!surface || !descent) return;
+    const soft = touchdown <= 2.5;
+    const next: SurfaceState = {
+      ...surface,
+      xp: surface.xp + (soft ? 30 : 12),
+      log: [
+        ...surface.log,
+        {
+          h: 0,
+          msg: soft
+            ? `Soft touchdown at ${touchdown.toFixed(1)} m/s. Expedition begins.`
+            : `Hard landing at ${touchdown.toFixed(1)} m/s. Suit and lander damaged.`,
+          kind: soft ? 'good' : 'warn',
+        },
+      ],
+    };
+    set({
+      surface: next,
+      descent: { ...descent, phase: 'landed', touchdown, fuel: fuelLeft, altitude: 0, vy: 0 },
+      screen: 'surface',
+    });
+    get().pushToast(soft ? 'Touchdown confirmed — base camp is live.' : 'Hard landing — check suit integrity.', soft ? 'good' : 'warn');
+    if (get().settings.sound) sound.play(soft ? 'success' : 'alarm');
+    get().save();
+  },
+
+  failDescent: (touchdown) => {
+    const d = get().descent;
+    if (!d) return;
+    set({ descent: { ...d, phase: 'crashed', touchdown, altitude: 0, vy: 0, attempts: d.attempts + 1 } });
+    if (get().settings.sound) sound.play('failure');
+  },
+
+  retryDescent: () => {
+    const d = get().descent;
+    if (!d) return;
+    set({
+      descent: {
+        ...d,
+        phase: 'flying',
+        altitude: 800,
+        vy: 10,
+        x: 0,
+        vx: 0,
+        fuel: 100,
+        attempts: d.attempts + 1,
+        touchdown: 0,
+      },
+    });
+  },
+
+  abortExpedition: () => {
+    set({ surface: null, descent: null, screen: 'results' });
+    get().save();
+  },
+
+  surfaceTick: (hours) => {
+    const { surface, screen } = get();
+    if (!surface || screen !== 'surface' || surface.status !== 'active') return;
+    const res = tickSurface(surface, hours);
+    if (res.state === surface) return;
+    set({ surface: res.state });
+    for (const ev of res.events.slice(0, 2)) get().pushToast(ev.msg, ev.kind);
+    scheduleSave();
+  },
+
+  surfacePose: (x, z) => {
+    const surface = get().surface;
+    if (!surface) return;
+    set({ surface: moveSurvivor(surface, x, z) });
+  },
+
+  surfaceCollect: (node) => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = engineCollectNode(surface, node);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('scan');
+    scheduleSave();
+  },
+
+  surfaceBuild: (kind) => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = engineBuildModule(surface, kind);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('attach');
+    scheduleSave();
+  },
+
+  surfaceUpgrade: (id) => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = engineUpgradeSuit(surface, id);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('confirm');
+    scheduleSave();
+  },
+
+  surfaceRepair: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = engineRepairSuit(surface);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    scheduleSave();
+  },
+
+  surfaceResupply: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = engineResupply(surface);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    scheduleSave();
+  },
+
+  surfaceRename: (callsign) => {
+    const surface = get().surface;
+    if (!surface) return;
+    set({ surface: renameSurvivor(surface, callsign) });
+    scheduleSave();
+  },
+
+  surfaceSuitColor: (color) => {
+    const surface = get().surface;
+    if (!surface) return;
+    set({ surface: { ...surface, suitColor: color } });
+    scheduleSave();
+  },
+
+  endExpedition: () => {
+    const { surface, progress } = get();
+    if (!surface) {
+      set({ screen: 'results' });
+      return;
+    }
+    const bonus = surface.status === 'rescued' ? 10_000 : 25_000 + surface.modules.length * 12_000;
+    set({
+      progress: {
+        ...progress,
+        xp: progress.xp + surface.xp,
+        credits: progress.credits + bonus,
+      },
+      descent: null,
+      screen: 'results',
+    });
+    get().pushToast(
+      surface.status === 'rescued'
+        ? `Expedition logged: ${surface.gathered} samples, team recovered.`
+        : `Expedition complete: ${surface.gathered} samples, ${surface.modules.length} base modules.`,
+      surface.status === 'rescued' ? 'warn' : 'good',
+    );
+    get().save();
   },
 
   dispatch: (cmd, ctx) => {

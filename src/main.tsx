@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import MissionApp from './game/MissionApp';
 import './index.css';
+// Epic look layer must load after Tailwind utilities so it owns the final word.
+import './game/epic.css';
 
 // Offline shell: everything is bundled (fonts, procedural textures, synthesized audio).
 // http(s) only — no service worker on file:// or during development.

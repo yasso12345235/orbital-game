@@ -161,7 +161,11 @@ export function HomeScreen() {
       : { tone: 'muted' as const, text: t('locked') };
 
   return (
-    <div className="relative isolate overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--ma-accent)_16%,var(--ma-line))] min-h-[calc(100vh-128px)] flex flex-col">
+    <div className="ma-home-shell relative isolate overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--ma-accent)_16%,var(--ma-line))] min-h-[calc(100vh-128px)] flex flex-col">
+      {/* Cinematic orbit hairlines + sun flare behind the planet. */}
+      <div className="ma-epic-rings" aria-hidden><span /><span /><span /></div>
+      <div className="ma-epic-flare" aria-hidden />
+
       {/* Deep space base + planet limb fallback (hidden once WebGL is live). */}
       <div
         className="absolute inset-0 -z-10"
@@ -185,7 +189,7 @@ export function HomeScreen() {
       {/* Living 3D hero (planet limb, starfield, flyby, meteors). */}
       {webgl && (
         <Suspense fallback={null}>
-          <LazyHomeHero target={peek.target} className="ma-hero-in absolute inset-0 -z-10 w-full h-full opacity-95" />
+          <LazyHomeHero target={peek.target} className="ma-hero-in absolute inset-x-0 top-0 h-[92svh] -z-10 w-full opacity-95" />
         </Suspense>
       )}
 
@@ -203,12 +207,15 @@ export function HomeScreen() {
         {/* ------------------------------------------------ hero column */}
         <div className="flex min-w-0 flex-col justify-between gap-8">
           <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-3">
+            <span className="ma-epic-kicker">
+              {lang === 'ar' ? 'برنامج مهندس المهمات' : 'Mission Architect Program'}
+            </span>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className="ma-status" data-tone="accent"><i />{lang === 'ar' ? 'مركز التحكم متصل' : 'Mission control online'}</span>
-              <span className="ma-hudtag" dir="ltr">MISSION ARCHITECT PROGRAM · v1.6</span>
+              <span className="ma-hudtag" dir="ltr">DEEP SPACE OPERATIONS · v1.6</span>
             </div>
 
-            <h1 className="ma-hero-word mt-6" dir="ltr">ORBITAL</h1>
+            <h1 className="ma-hero-word mt-5" dir="ltr">ORBITAL</h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className="ma-hero-sub">{t('tagline')}</span>
               <span className="ma-num text-[10px] tracking-[0.24em] text-[var(--ma-muted)] uppercase">
@@ -236,9 +243,9 @@ export function HomeScreen() {
                 { k: lang === 'ar' ? 'الرصيد' : 'Credits', v: fmt(progress.credits) },
                 { k: lang === 'ar' ? 'المستوى' : 'Level', v: String(level) },
               ].map((s) => (
-                <div key={s.k} className="rounded-xl border border-[color-mix(in_srgb,var(--ma-line)_86%,transparent)] bg-[rgba(6,12,26,0.5)] px-3 py-2 backdrop-blur-sm">
+                <div key={s.k} className="ma-epic-stat">
                   <dt className="ma-hudtag">{s.k}</dt>
-                  <dd className="ma-num mt-1 text-[15px] text-[var(--ma-text)]">{s.v}</dd>
+                  <dd className="ma-num mt-2 text-[15px] text-[var(--ma-text)]">{s.v}</dd>
                 </div>
               ))}
             </dl>

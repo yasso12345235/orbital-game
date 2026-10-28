@@ -12,6 +12,7 @@ import {
   AdditiveBlending,
   CanvasTexture,
   type Group,
+  type Mesh,
   type MeshBasicMaterial,
 } from 'three';
 import { Planet, SpacecraftKit, OrbitRing } from '../shapes';
@@ -196,6 +197,53 @@ function FlyBy() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Distant sun — a narrow flare that lifts the whole frame             */
+/* ------------------------------------------------------------------ */
+function sunTexture(): CanvasTexture {
+  const s = 256;
+  const cv = document.createElement('canvas');
+  cv.width = s;
+  cv.height = s;
+  const ctx = cv.getContext('2d')!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.08, 'rgba(255,246,220,0.95)');
+  g.addColorStop(0.2, 'rgba(255,214,150,0.5)');
+  g.addColorStop(0.45, 'rgba(255,180,110,0.14)');
+  g.addColorStop(1, 'rgba(255,170,90,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  return new CanvasTexture(cv);
+}
+
+function SunFlare() {
+  const q = useVisualQuality();
+  const tex = useMemo(sunTexture, []);
+  useEffect(() => () => tex.dispose(), [tex]);
+  const halo = useRef<Mesh>(null);
+
+  useFrame((state) => {
+    const m = halo.current?.material as MeshBasicMaterial | undefined;
+    if (!m || q.reduced) return;
+    m.opacity = 0.72 + Math.sin(state.clock.elapsedTime * 0.55) * 0.07;
+  });
+
+  return (
+    <group position={[48, 30, -74]}>
+      <mesh ref={halo}>
+        <planeGeometry args={[92, 92]} />
+        <meshBasicMaterial map={tex} transparent opacity={0.72} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+      {/* Anamorphic streak */}
+      <mesh rotation={[0, 0, -0.22]}>
+        <planeGeometry args={[70, 0.7]} />
+        <meshBasicMaterial color="#ffe6bb" transparent opacity={0.18} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Scene                                                               */
 /* ------------------------------------------------------------------ */
 export interface HomeSceneProps {
@@ -207,13 +255,14 @@ export function HomeScene({ target = 'earth' }: HomeSceneProps) {
   return (
     <>
       <Starfield />
+      <SunFlare />
       <group position={[0, -PLANET_R - 2.4, 0]} rotation={[0, 0, 0.3]}>
         <Planet
           target={target}
           radius={PLANET_R}
           spin={1.6}
           cloud={EARTHLIKE.has(target) ? 0.8 : 0}
-          atmosphere={1.5}
+          atmosphere={2.2}
         />
         {/* ORBITAL signature: one thin accent orbit ring hugging the limb. */}
         <OrbitRing radius={PLANET_R * 1.16} tilt={-16} speed={0.32} dashes={64} satellites={2} />

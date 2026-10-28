@@ -30,8 +30,8 @@ function noiseBlobs(
 
 /** Equirectangular planet surface (day side; Earth gets baked city lights). */
 export function planetTexture(target: string): CanvasTexture {
-  const w = 1024;
-  const h = 512;
+  const w = 2048;
+  const h = 1024;
   const cv = document.createElement('canvas');
   cv.width = w;
   cv.height = h;
@@ -46,7 +46,7 @@ export function planetTexture(target: string): CanvasTexture {
   switch (target) {
     case 'mars': {
       band(['#8C3B1E', '#B3502B', '#C25E33', '#A9461F', '#8C3B1E', '#C26842']);
-      noiseBlobs(ctx, w, h, 90, ['#7A3016', '#D98A5E', '#5E2410'], 8, 46);
+      noiseBlobs(ctx, w, h, 300, ['#7A3016', '#D98A5E', '#5E2410'], 8, 46);
       ctx.fillStyle = '#E8D9C8';
       ctx.fillRect(0, 0, w, 16);
       ctx.fillRect(0, h - 14, w, 14);
@@ -63,7 +63,7 @@ export function planetTexture(target: string): CanvasTexture {
     case 'europa': {
       band(['#E7EDF5', '#DDE7F2', '#EFF4FA', '#D5E1EF']);
       ctx.strokeStyle = 'rgba(150,100,70,0.5)';
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 240; i++) {
         ctx.beginPath();
         ctx.lineWidth = 1 + Math.random() * 2.5;
         const y = Math.random() * h;
@@ -76,36 +76,36 @@ export function planetTexture(target: string): CanvasTexture {
     case 'moon': {
       ctx.fillStyle = '#9A9A9E';
       ctx.fillRect(0, 0, w, h);
-      noiseBlobs(ctx, w, h, 140, ['#7E7E84', '#B4B4B8', '#6E6E74'], 6, 40);
+      noiseBlobs(ctx, w, h, 320, ['#7E7E84', '#B4B4B8', '#6E6E74'], 6, 40);
       break;
     }
     case 'venus': {
       band(['#E8C56A', '#DCB45C', '#F0D488', '#D4A94F', '#E8C56A', '#DFBB60']);
-      noiseBlobs(ctx, w, h, 70, ['#F5DFA0', '#C99B3E', '#EFD07E'], 16, 80);
+      noiseBlobs(ctx, w, h, 180, ['#F5DFA0', '#C99B3E', '#EFD07E'], 16, 80);
       break;
     }
     case 'eros': {
       ctx.fillStyle = '#8A836F';
       ctx.fillRect(0, 0, w, h);
-      noiseBlobs(ctx, w, h, 160, ['#6E6857', '#A39B84', '#57523F'], 5, 34);
+      noiseBlobs(ctx, w, h, 360, ['#6E6857', '#A39B84', '#57523F'], 5, 34);
       break;
     }
     case 'titan': {
       band(['#D98E3D', '#E8A34C', '#C97F35', '#F0B45E', '#D2853A', '#E0963F']);
-      noiseBlobs(ctx, w, h, 40, ['#B96F2C', '#F2C07A', '#A65F22'], 30, 120);
+      noiseBlobs(ctx, w, h, 120, ['#B96F2C', '#F2C07A', '#A65F22'], 30, 120);
       break;
     }
     default: {
       // earth + leo/gto/geo
       band(['#0B2E5C', '#0E3A70', '#0B2E5C', '#0A2A52']);
-      noiseBlobs(ctx, w, h, 60, ['#1E7A3C', '#2B8F4A', '#6B8F3A', '#1E6B38'], 14, 70);
-      noiseBlobs(ctx, w, h, 26, ['#C9B27A', '#A89060'], 6, 26);
+      noiseBlobs(ctx, w, h, 210, ['#1E7A3C', '#2B8F4A', '#6B8F3A', '#1E6B38'], 14, 70);
+      noiseBlobs(ctx, w, h, 84, ['#C9B27A', '#A89060'], 6, 26);
       ctx.fillStyle = '#EAF2FF';
       ctx.fillRect(0, 0, w, 14);
       ctx.fillRect(0, h - 12, w, 12);
       // city lights
       ctx.fillStyle = 'rgba(255,214,140,0.85)';
-      for (let i = 0; i < 260; i++) {
+      for (let i = 0; i < 900; i++) {
         ctx.fillRect(Math.random() * w, h * 0.15 + Math.random() * h * 0.7, 1.6, 1.6);
       }
       break;

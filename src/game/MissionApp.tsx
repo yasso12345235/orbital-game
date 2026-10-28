@@ -34,6 +34,8 @@ import { LauncherScreen } from './screens/Launcher';
 import { OrbitScreen } from './screens/Orbit';
 import { SimulationScreen } from './screens/Simulation';
 import { ResultsScreen } from './screens/Results';
+import { DescentScreen } from './screens/Descent';
+import { SurfaceScreen } from './screens/Surface';
 import { TechTreeScreen } from './screens/TechTree';
 import { StyleGuideScreen } from './screens/StyleGuide';
 import { sound } from './audio';
@@ -53,6 +55,8 @@ const WARP_TARGETS: ReadonlySet<ScreenId> = new Set<ScreenId>([
   'simulation',
   'results',
   'techTree',
+  'descent',
+  'surface',
 ]);
 
 export default function MissionApp() {
@@ -62,6 +66,8 @@ export default function MissionApp() {
   const reduced = useReducedMotion();
   const setScreen = useMission((s) => s.setScreen);
   const missionId = useMission((s) => s.missionId);
+  const hasSurface = useMission((s) => !!s.surface);
+  const descentFlying = useMission((s) => s.descent?.phase === 'flying');
   const settings = useMission((s) => s.settings);
   const loadWarning = useMission((s) => s.loadWarning);
   const dismissLoadWarning = useMission((s) => s.dismissLoadWarning);
@@ -135,6 +141,8 @@ export default function MissionApp() {
     orbit: <OrbitScreen />,
     simulation: <SimulationScreen />,
     results: <ResultsScreen />,
+    descent: <DescentScreen />,
+    surface: <SurfaceScreen />,
     techTree: <TechTreeScreen />,
     styleGuide: <StyleGuideScreen />,
     playground: (
@@ -150,6 +158,14 @@ export default function MissionApp() {
       data-theme={theme}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
+      {/* Ambient deep-space layer: parallax stars, aurora blooms, film grain. */}
+      <div className="ma-ambient" aria-hidden>
+        <i className="ma-amb-stars" />
+        <i className="ma-amb-stars-2" />
+        <i className="ma-amb-aurora ma-amb-aurora-a" />
+        <i className="ma-amb-aurora ma-amb-aurora-b" />
+        <i className="ma-amb-grain" />
+      </div>
       {/* Top bar — floating glass chrome */}
       <header className={screen === 'home' ? 'ma-menubar mb-4' : 'ma-topbar mb-4'}>
         <div className="ma-topbar-main">
@@ -172,19 +188,41 @@ export default function MissionApp() {
 
           {screen !== 'home' && (
             <nav ref={navRef} className="ma-screennav" aria-label="Screens">
-              {(['home', 'hangar', 'missionSelect', 'builder', 'launcher', 'orbit', 'simulation', 'results', 'techTree'] as const).map((s) => (
-                s === 'simulation' && !useMission.getState().sim ? null : (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`ma-navbtn ${screen === s ? 'is-active' : ''}`}
-                    onClick={() => setScreen(s)}
-                    aria-current={screen === s ? 'page' : undefined}
-                  >
-                    {t(s as StringKey)}
-                  </button>
-                )
+              {(['home', 'hangar', 'missionSelect', 'builder', 'launcher', 'orbit', 'simulation', 'results', 'techTree'] as ScreenId[]).map((s) => (
+                (s === 'simulation' && !useMission.getState().sim) || (s === 'descent' && !descentFlying)
+                  ? null
+                  : (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`ma-navbtn ${screen === s ? 'is-active' : ''}`}
+                      onClick={() => setScreen(s)}
+                      aria-current={screen === s ? 'page' : undefined}
+                    >
+                      {t(s as StringKey)}
+                    </button>
+                  )
               ))}
+              {descentFlying && (
+                <button
+                  type="button"
+                  className={`ma-navbtn ${screen === 'descent' ? 'is-active' : ''}`}
+                  onClick={() => setScreen('descent')}
+                  aria-current={screen === 'descent' ? 'page' : undefined}
+                >
+                  {t('descent')}
+                </button>
+              )}
+              {hasSurface && (
+                <button
+                  type="button"
+                  className={`ma-navbtn ${screen === 'surface' ? 'is-active' : ''}`}
+                  onClick={() => setScreen('surface')}
+                  aria-current={screen === 'surface' ? 'page' : undefined}
+                >
+                  {t('surface')}
+                </button>
+              )}
             </nav>
           )}
 
