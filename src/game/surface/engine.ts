@@ -358,6 +358,22 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     }
   }
 
+  // Renewable resource production: modules inside base generate resources over time.
+  const inventory = { ...state.inventory };
+  let capacityOverflow = false;
+  for (const m of state.modules) {
+    const def = MODULES.find((d) => d.id === m.kind);
+    if (!def?.produces) continue;
+    const produced = def.produces.amountPerHour * hours;
+    const spaceLeft = suitEffects(state).capacity - inventoryTotal({ ...state, inventory });
+    if (spaceLeft <= 0) {
+      capacityOverflow = true;
+      continue;
+    }
+    const amount = Math.min(produced, spaceLeft);
+    inventory[def.produces.id] = (inventory[def.produces.id] ?? 0) + amount;
+  }
+
   // Suit wear: slow baseline plus dose-driven damage.
   integrity -= (DRAIN.integrity + Math.max(0, radiation - 55) * 0.006) * hours;
 
@@ -381,6 +397,7 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     radiation,
     integrity,
     charge,
+    inventory,
     currentSolGoal,
     solGoalsCompleted,
     lastSol: currentSol,

@@ -314,6 +314,8 @@ export interface ModuleDef {
   descAr: string;
   cost: Partial<Record<ResourceId, number>>;
   color: string;
+  /** Resource produced per hour while at base, or null if none. */
+  produces: { id: ResourceId; amountPerHour: number } | null;
 }
 
 export const MODULES: ModuleDef[] = [
@@ -325,6 +327,7 @@ export const MODULES: ModuleDef[] = [
     descAr: 'يعيد تعبئة الأكسجين داخل القاعدة.',
     cost: { ice: 8, regolith: 4 },
     color: '#7fd8ff',
+    produces: null,
   },
   {
     id: 'extractor',
@@ -334,15 +337,17 @@ export const MODULES: ModuleDef[] = [
     descAr: 'يستخرج مياه الشرب من الجليد المحلي.',
     cost: { ice: 10, ore: 4 },
     color: '#66b6ff',
+    produces: null,
   },
   {
     id: 'greenhouse',
     en: 'Hydroponics',
     ar: 'زراعة مائية',
-    descEn: 'Grows food while the reactor has power.',
-    descAr: 'ينتج غذاءً طالما تتوفر الطاقة.',
+    descEn: 'Grows biomass food while the reactor has power.',
+    descAr: 'ينتج غذاء حيوي (بيوماس) طالما تتوفر الطاقة.',
     cost: { ice: 6, biomass: 6, regolith: 4 },
     color: '#8ee08a',
+    produces: { id: 'biomass', amountPerHour: 0.5 },
   },
   {
     id: 'heater',
@@ -352,6 +357,7 @@ export const MODULES: ModuleDef[] = [
     descAr: 'يحفظ حرارة البدلة ليلاً داخل القاعدة.',
     cost: { regolith: 10, ore: 5 },
     color: '#ffb066',
+    produces: null,
   },
   {
     id: 'radshield',
@@ -361,6 +367,7 @@ export const MODULES: ModuleDef[] = [
     descAr: 'يخفض الجرعة المتراكمة قرب المركبة.',
     cost: { ore: 8, crystal: 2 },
     color: '#c39bff',
+    produces: null,
   },
   {
     id: 'solar',
@@ -370,6 +377,7 @@ export const MODULES: ModuleDef[] = [
     descAr: 'يشحن بطارية البدلة ليلاً ونهاراً.',
     cost: { regolith: 6, ore: 4, crystal: 3 },
     color: '#ffe08a',
+    produces: null,
   },
 ];
 
