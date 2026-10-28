@@ -39,6 +39,7 @@ import {
   type ModuleKind,
   type ResourceId,
   type UpgradeId,
+  type WeatherId,
 } from '../surface/model';
 
 const LazySurfaceView = lazy(() => import('../visual/SurfaceView'));
@@ -52,6 +53,14 @@ interface MoveInput {
 }
 
 const SUIT_COLORS = ['#e9c37c', '#7fd8ff', '#ff8a6b', '#8ee08a', '#c39bff', '#f2f5fb'];
+
+const WEATHER_LABELS: Record<WeatherId, { en: string; ar: string }> = {
+  clear: { en: 'Clear', ar: 'صافي' },
+  dust_storm: { en: 'Dust storm', ar: 'عاصفة غبارية' },
+  radiation_spell: { en: 'Radiation spell', ar: 'موجة إشعاعية' },
+  cold_snap: { en: 'Cold snap', ar: 'موجة برد' },
+  heat_wave: { en: 'Heat wave', ar: 'موجة حار' },
+};
 
 type Tab = 'suit' | 'base' | 'log';
 
@@ -228,6 +237,9 @@ export function SurfaceScreen() {
                 {String(Hh).padStart(2, '0')}:{String(Mm).padStart(2, '0')} {night ? '☾' : '☀'}
               </div>
               <div className="ma-num">{temp.toFixed(0)}°C · {profile.gravity.toFixed(2)} m/s²</div>
+              <div className="ma-num" style={{ color: surface.weather === 'clear' ? 'var(--ma-good)' : 'var(--ma-warn)' }}>
+                {lang === 'ar' ? WEATHER_LABELS[surface.weather].ar : WEATHER_LABELS[surface.weather].en}
+              </div>
               <div className="ma-num" style={{ color: inBase ? 'var(--ma-good)' : 'var(--ma-muted)' }}>
                 {inBase ? (lang === 'ar' ? 'داخل القاعدة' : 'AT BASE') : `${dist.toFixed(0)} m`}
               </div>

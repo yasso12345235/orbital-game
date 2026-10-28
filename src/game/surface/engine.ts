@@ -14,6 +14,7 @@ import {
   RESOURCE_IDS,
   STARTING_INVENTORY,
   UPGRADES,
+  WEATHER_EFFECTS,
   XP,
   levelForXp,
   surfaceProfileFor,
@@ -21,6 +22,7 @@ import {
   type ResourceId,
   type SurfaceProfile,
   type UpgradeId,
+  type WeatherId,
 } from './model';
 
 export interface SurfaceNode {
@@ -68,6 +70,10 @@ export interface SurfaceState {
   taken: number[];
   gathered: number;
   walked: number;
+  /** Current surface weather (deterministic, seeded). */
+  weather: WeatherId;
+  /** Hours elapsed in the current weather spell. */
+  weatherHours: number;
   status: 'active' | 'rescued';
   log: SurfaceLogEntry[];
 }
@@ -88,6 +94,22 @@ export interface SurfaceEvent {
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const round1 = (v: number) => Math.round(v * 10) / 10;
+
+const WEATHER_IDS: WeatherId[] = ['clear', 'dust_storm', 'radiation_spell', 'cold_snap', 'heat_wave'];
+
+/** Pick the weather spell for a 6-hour block, deterministic from seed + hours. */
+function pickWeather(profile: SurfaceProfile, seed: number, hours: number): WeatherId {
+  const block = Math.floor(hours / 6);
+  const roll = ((hashString(`${seed}:${block}`) >>> 0) / 0xffffffff);
+  const weights = WEATHER_IDS.map((id) => profile.weatherBias[id] ?? 0);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = roll * total;
+  for (let i = 0; i < WEATHER_IDS.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return WEATHER_IDS[i];
+  }
+  return WEATHER_IDS[WEATHER_IDS.length - 1];
+}
 
 function hashString(s: string): number {
   let h = 2166136261;
@@ -148,6 +170,8 @@ export function createSurface(input: CreateSurfaceInput): SurfaceState {
     taken: [],
     gathered: 0,
     walked: 0,
+    weather: 'clear',
+    weatherHours: 0,
     status: 'active',
     log: [
       {
@@ -256,6 +280,9 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   const events: SurfaceEvent[] = [];
   const sun = daylight(profile, state.hours + hours / 2);
   const temp = surfaceTemp(profile, state.hours + hours / 2);
+  const nextWeather = pickWeather(profile, state.seed, state.hours + hours);
+  const weatherChanged = nextWeather !== state.weather;
+  const effect = WEATHER_EFFECTS[nextWeather];
 
   const cold = clamp(-temp / 120, 0, 1.6);
   const heat = clamp((temp - 30) / 130, 0, 3.2);
@@ -268,19 +295,19 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   let integrity = state.integrity;
   let charge = state.charge;
 
-  // Life support draw.
-  o2 -= DRAIN.o2 * e.o2Drain * hours;
+  // Life support draw (modified by current weather).
+  o2 -= DRAIN.o2 * e.o2Drain * hours * effect.drainMult;
   water -= DRAIN.water * hours;
   food -= DRAIN.food * hours;
-  warmth -= (DRAIN.warmth + cold * 0.42 + heat * 0.5) * e.warmthDrain * hours;
-  charge -= DRAIN.charge * hours;
+  warmth -= (DRAIN.warmth + cold * 0.42 + heat * 0.5) * e.warmthDrain * hours * effect.drainMult;
+  charge -= DRAIN.charge * hours * effect.drainMult;
 
   // Solar recharge (suit skin + array at base).
   const solarGain = 0.55 * sun * e.solar;
   charge += solarGain * hours;
 
-  // Radiation dose: the planet sets the rate, the liner cuts it.
-  radiation += (DRAIN.radiation + profile.radiation * 0.1) * e.radiationDose * hours;
+  // Radiation dose: the planet sets the rate, the liner cuts it, weather amplifies it.
+  radiation += (DRAIN.radiation + profile.radiation * 0.1) * e.radiationDose * hours * effect.radiationMult;
 
   // Base camp services only work inside BASE_RADIUS.
   if (nearBaseRadius) {
@@ -318,6 +345,8 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   const next: SurfaceState = {
     ...state,
     hours: state.hours + hours,
+    weather: nextWeather,
+    weatherHours: weatherChanged ? 0 : state.weatherHours + hours,
     o2,
     water,
     food,
@@ -326,6 +355,21 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     integrity,
     charge,
   };
+
+  // Weather change announcement.
+  if (weatherChanged) {
+    const label =
+      nextWeather === 'clear'
+        ? 'Clear'
+        : nextWeather === 'dust_storm'
+          ? 'Dust storm'
+          : nextWeather === 'radiation_spell'
+            ? 'Radiation spell'
+            : nextWeather === 'cold_snap'
+              ? 'Cold snap'
+              : 'Heat wave';
+    events.push({ msg: `Weather changed: ${label}.`, kind: 'warn' });
+  }
 
   const crossed = (before: number, after: number, limit: number) => before > limit && after <= limit;
   if (crossed(state.o2, o2, 25)) {
