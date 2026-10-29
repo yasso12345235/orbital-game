@@ -36,6 +36,7 @@ import {
   RESOURCES,
   RESOURCE_IDS,
   ROVER_COST,
+  SCOUT_DRONE_COST,
   SURFACE_PROFILES,
   UPGRADES,
   costParts,
@@ -112,6 +113,7 @@ export function SurfaceScreen() {
   const surfaceRename = useMission((s) => s.surfaceRename);
   const surfaceSuitColor = useMission((s) => s.surfaceSuitColor);
   const surfaceUnlockRover = useMission((s) => s.surfaceUnlockRover);
+  const surfaceScoutDrone = useMission((s) => s.surfaceScoutDrone);
   const surfaceCheckSolGoal = useMission((s) => s.surfaceCheckSolGoal);
   const surfaceCompleteSolGoal = useMission((s) => s.surfaceCompleteSolGoal);
   const endExpedition = useMission((s) => s.endExpedition);
@@ -361,6 +363,18 @@ export function SurfaceScreen() {
           </span>
           <button type="button" className="ma-pill ma-pill-ghost ma-pill-sm" onClick={endExpedition}>
             {lang === 'ar' ? 'إنهاء البعثة' : 'END EXPEDITION'}
+          </button>
+          <button
+            type="button"
+            className={`ma-pill ma-pill-sm ${surface.scoutDroneTarget ? 'ma-pill-accent' : ''}`}
+            disabled={surface.status !== 'active'}
+            onClick={surfaceScoutDrone}
+          >
+            {surface.scoutDroneTarget
+              ? (lang === 'ar' ? 'الطائرة مفعلة' : 'SCOUT DRONE ACTIVE')
+              : lang === 'ar'
+                ? `إطلاق الطائرة (${costParts(SCOUT_DRONE_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`
+                : `SCOUT DRONE (${costParts(SCOUT_DRONE_COST).map((p) => `${p.amount} × ${RESOURCES.find((r) => r.id === p.id)?.tag}`).join(' + ')})`}
           </button>
         </div>
       </section>

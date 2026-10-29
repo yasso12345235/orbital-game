@@ -26,7 +26,7 @@ import type {
   ScreenId,
 } from './store';
 import { STARTING_NODE, TECH_NODES } from './tech';
-import type { SurfaceState, BuiltModule } from './surface/engine';
+import type { SurfaceState, BuiltModule, SurfaceNode } from './surface/engine';
 import {
   MODULES,
   RESOURCE_IDS,
@@ -501,6 +501,8 @@ function sanitizeSurface(raw: unknown): SurfaceState | null {
     currentSolGoal: null,
     solGoalsCompleted: [],
     lastSol: 0,
+    scoutDroneTarget: null,
+    scoutDroneExpiresAt: 0,
     weather: (typeof raw.weather === 'string' && ['clear', 'dust_storm', 'radiation_spell', 'cold_snap', 'heat_wave', 'meteor_shower', 'solar_flare', 'acid_rain'].includes(raw.weather)) ? (raw.weather as WeatherId) : 'clear',
     weatherHours: num(raw.weatherHours, 0, 0, 1e6),
     status: raw.status === 'rescued' ? 'rescued' : 'active',

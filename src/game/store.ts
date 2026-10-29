@@ -39,6 +39,7 @@ import {
   unlockRover,
   checkSolGoal,
   completeSolGoal,
+  scoutDrone,
   upgradeSuit as engineUpgradeSuit,
   type SurfaceNode,
   type SurfaceState,
@@ -197,6 +198,7 @@ interface MissionStore {
   surfaceUnlockRover: () => void;
   surfaceCheckSolGoal: () => { completed: boolean; goal: SolGoal | null };
   surfaceCompleteSolGoal: () => void;
+  surfaceScoutDrone: () => void;
   endExpedition: () => void;
 
   // meta
@@ -1076,6 +1078,21 @@ export const useMission = create<MissionStore>((set, get) => ({
     set({ surface: res.state });
     get().pushToast(res.message, 'good');
     if (get().settings.sound) sound.play('confirm');
+    scheduleSave();
+  },
+
+  surfaceScoutDrone: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const res = scoutDrone(surface);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, 'good');
+    if (get().settings.sound) sound.play('scan');
     scheduleSave();
   },
 

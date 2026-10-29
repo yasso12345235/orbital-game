@@ -439,6 +439,10 @@ export const WALK_SPEED = 7;
 export const ROVER_COST: Partial<Record<ResourceId, number>> = { regolith: 12, ore: 6, crystal: 2 };
 export const ROVER_SPEED_BONUS = 0.6; // +60% surface speed when rover is unlocked
 
+/** Scout drone launch cost and duration. All tuning stays in this data file. */
+export const SCOUT_DRONE_COST: Partial<Record<ResourceId, number>> = { regolith: 10, ore: 4, crystal: 2 };
+export const SCOUT_DRONE_DURATION_HOURS = 6; // How long the drone's target hint stays valid
+
 /* ------------------------------------------------------------------ sol goals */
 
 /** A daily survival objective, assigned per sol (24 local hours). */

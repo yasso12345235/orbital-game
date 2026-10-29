@@ -12,21 +12,25 @@ import {
   MODULES,
   NODE_YIELD,
   RESOURCE_IDS,
+  ROVER_COST,
+  SCOUT_DRONE_COST,
+  SCOUT_DRONE_DURATION_HOURS,
+  SOL_GOALS,
   STARTING_INVENTORY,
   UPGRADES,
   WEATHER_EFFECTS,
-  ROVER_COST,
   XP,
   levelForXp,
   pickSolGoal,
   surfaceProfileFor,
   type ModuleKind,
   type ResourceId,
+  type SolGoal,
   type SurfaceProfile,
   type UpgradeId,
   type WeatherId,
-  type SolGoal,
 } from './model';
+import { surfaceNodes } from './nodes';
 
 export interface SurfaceNode {
   id: number;
@@ -85,6 +89,9 @@ export interface SurfaceState {
   solGoalsCompleted: string[];
   /** Last sol number for which a goal was assigned. */
   lastSol: number;
+  /** Scout drone target (nearest free deposit) and expiry hour. */
+  scoutDroneTarget: SurfaceNode | null;
+  scoutDroneExpiresAt: number;
   status: 'active' | 'rescued';
   log: SurfaceLogEntry[];
 }
@@ -187,6 +194,8 @@ export function createSurface(input: CreateSurfaceInput): SurfaceState {
     currentSolGoal: null,
     solGoalsCompleted: [],
     lastSol: 0,
+    scoutDroneTarget: null,
+    scoutDroneExpiresAt: 0,
     status: 'active',
     log: [
       {
@@ -595,6 +604,38 @@ export function resupply(state: SurfaceState): ActionResult {
     log: pushLog(state, 'Resupplied from the lander stores.', 'good'),
   };
   return { ok: true, state: next, message: 'Resupplied: O₂ + water full', events: [{ msg: 'Resupply complete.', kind: 'good' }] };
+}
+
+export function scoutDrone(state: SurfaceState): ActionResult {
+  if (!atBase(state)) {
+    return { ok: false, state, message: 'Return to the lander to launch the scout drone.' };
+  }
+  if (!canAfford(state, SCOUT_DRONE_COST)) {
+    return { ok: false, state, message: 'Not enough materials to launch the scout drone.' };
+  }
+  const nodes = surfaceNodes(state.seed, state.target).filter((n) => !state.taken.includes(n.id));
+  if (nodes.length === 0) {
+    return { ok: false, state, message: 'No free deposits detected on this world.' };
+  }
+  const nearest = nodes.reduce((best, n) => {
+    const d = Math.hypot(n.x - state.x, n.z - state.z);
+    const bd = Math.hypot(best.x - state.x, best.z - state.z);
+    return d < bd ? n : best;
+  });
+  const next: SurfaceState = {
+    ...state,
+    inventory: pay(state, SCOUT_DRONE_COST),
+    scoutDroneTarget: nearest,
+    scoutDroneExpiresAt: state.hours + SCOUT_DRONE_DURATION_HOURS,
+    xp: state.xp + XP.scan,
+    log: pushLog(state, `Scout drone launched: nearest ${nearest.kind} deposit marked.`, 'good'),
+  };
+  return {
+    ok: true,
+    state: next,
+    message: 'Scout drone launched — nearest deposit marked.',
+    events: [{ msg: `Scout drone: ${nearest.kind} deposit marked at ${Math.hypot(nearest.x - state.x, nearest.z - state.z).toFixed(0)} m.`, kind: 'good' }],
+  };
 }
 
 export function moveSurvivor(state: SurfaceState, x: number, z: number): SurfaceState {
