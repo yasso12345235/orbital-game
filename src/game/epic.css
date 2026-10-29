@@ -1032,3 +1032,64 @@
 .ma-reduced .ma-descent-outcome {
   animation: none !important;
 }
+
+/* ================================================================
+   Surface RTL polish (v1.6 gate + bilingual support)
+   ================================================================ */
+
+/* Survival meters: mirror label and value alignment in RTL */
+[dir='rtl'] .ma-suit-bars {
+  text-align: right;
+}
+[dir='rtl'] .ma-suitbar-label {
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+[dir='rtl'] .ma-suitbar-track > i {
+  transform: scaleX(-1);
+}
+
+/* Expedition header tabs: reverse order visually in RTL */
+[dir='rtl'] .ma-tabrow {
+  direction: rtl;
+}
+
+/* Callsign input: Arabic text should flow right-to-left */
+[dir='rtl'] .ma-callsign {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Cost chips: mirror layout in RTL */
+[dir='rtl'] .ma-costchip {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Suit swatches: keep color swatches physically left-to-right but label RTL */
+[dir='rtl'] .ma-swatch[aria-label] {
+  direction: ltr;
+}
+
+/* Descent rail: move altitude indicator to the left edge in RTL */
+[dir='rtl'] .ma-descent-rail {
+  left: 4px;
+  right: auto;
+}
+[dir='rtl'] .ma-descent-rail-label {
+  direction: rtl;
+}
+
+/* Touch targets stay 44px in both directions (v1.6 mobile gate) */
+[dir='rtl'] .ma-dpad-key,
+[dir='rtl'] .ma-pill-sm,
+[dir='rtl'] .ma-btn-ghost {
+  width: 44px;
+  height: 44px;
+}
+
+/* Surface inventory / cargo tags: mirror spacing in RTL */
+[dir='rtl'] .ma-hudtag {
+  margin-inline-start: 0;
+  margin-inline-end: 6px;
+}
