@@ -64,6 +64,9 @@ const WEATHER_LABELS: Record<WeatherId, { en: string; ar: string }> = {
   radiation_spell: { en: 'Radiation spell', ar: 'موجة إشعاعية' },
   cold_snap: { en: 'Cold snap', ar: 'موجة برد' },
   heat_wave: { en: 'Heat wave', ar: 'موجة حار' },
+  meteor_shower: { en: 'Meteor shower', ar: 'زخات نيرات' },
+  solar_flare: { en: 'Solar flare', ar: 'وميض شمسي' },
+  acid_rain: { en: 'Acid rain', ar: 'مطر حمضي' },
 };
 
 type Tab = 'suit' | 'base' | 'log';

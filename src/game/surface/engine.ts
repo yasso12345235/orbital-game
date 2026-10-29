@@ -374,6 +374,23 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     inventory[def.produces.id] = (inventory[def.produces.id] ?? 0) + amount;
   }
 
+  // Weather-specific damage: meteor showers damage suit integrity, solar flares
+  // drain charge, acid rain damages suit and drains water.
+  if (nextWeather === 'meteor_shower') {
+    integrity -= 0.5 * hours;
+    events.push({ msg: 'Meteor shower impacting — suit integrity at risk.', kind: 'warn' });
+  }
+  if (nextWeather === 'solar_flare') {
+    charge -= 0.4 * hours;
+    radiation += 0.3 * hours;
+    events.push({ msg: 'Solar flare detected — radiation and battery drain elevated.', kind: 'warn' });
+  }
+  if (nextWeather === 'acid_rain') {
+    integrity -= 0.3 * hours;
+    water -= 0.3 * hours;
+    events.push({ msg: 'Acid rain falling — suit integrity and water reserves dropping.', kind: 'warn' });
+  }
+
   // Suit wear: slow baseline plus dose-driven damage.
   integrity -= (DRAIN.integrity + Math.max(0, radiation - 55) * 0.006) * hours;
 
@@ -414,7 +431,13 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
             ? 'Radiation spell'
             : nextWeather === 'cold_snap'
               ? 'Cold snap'
-              : 'Heat wave';
+              : nextWeather === 'heat_wave'
+                ? 'Heat wave'
+                : nextWeather === 'meteor_shower'
+                  ? 'Meteor shower'
+                  : nextWeather === 'solar_flare'
+                    ? 'Solar flare'
+                    : 'Acid rain';
     events.push({ msg: `Weather changed: ${label}.`, kind: 'warn' });
   }
 

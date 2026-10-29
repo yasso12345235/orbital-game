@@ -13,7 +13,7 @@ export type UpgradeId = 'o2' | 'thermal' | 'shield' | 'boots' | 'cargo' | 'solar
 
 export type ModuleKind = 'o2gen' | 'extractor' | 'greenhouse' | 'heater' | 'radshield' | 'solar';
 
-export type WeatherId = 'clear' | 'dust_storm' | 'radiation_spell' | 'cold_snap' | 'heat_wave';
+export type WeatherId = 'clear' | 'dust_storm' | 'radiation_spell' | 'cold_snap' | 'heat_wave' | 'meteor_shower' | 'solar_flare' | 'acid_rain';
 
 export interface ResourceDef {
   id: ResourceId;
@@ -89,7 +89,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#4b5a48',
     sun: '#fff2d2',
     bias: bias(1.4, 1, 0.6, 0.2, 1.6),
-    weatherBias: { clear: 1.0, dust_storm: 0.2, radiation_spell: 0.1, cold_snap: 0.3, heat_wave: 0.2 },
+    weatherBias: { clear: 1.0, dust_storm: 0.2, radiation_spell: 0.1, cold_snap: 0.3, heat_wave: 0.2, meteor_shower: 0.1, solar_flare: 0.1, acid_rain: 0.1 },
     hazardEn: 'Weather fronts and long nights.',
     hazardAr: 'جبهات جوية وليالٍ طويلة.',
   },
@@ -108,7 +108,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#5d5f66',
     sun: '#fff8e8',
     bias: bias(1.2, 2, 0.7, 0.3, 0.05),
-    weatherBias: { clear: 1.0, dust_storm: 0.5, radiation_spell: 0.3, cold_snap: 0.5, heat_wave: 0.1 },
+    weatherBias: { clear: 1.0, dust_storm: 0.5, radiation_spell: 0.3, cold_snap: 0.5, heat_wave: 0.1, meteor_shower: 0.2, solar_flare: 0.2, acid_rain: 0.0 },
     hazardEn: 'No atmosphere: hard radiation and 120°C swings.',
     hazardAr: 'لا غلاف جوي: إشعاع قاسٍ وتغيّر 120°م.',
   },
@@ -127,7 +127,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#6f341d',
     sun: '#ffd2a1',
     bias: bias(1.6, 1.8, 0.9, 0.25, 0.1),
-    weatherBias: { clear: 0.8, dust_storm: 1.5, radiation_spell: 0.1, cold_snap: 0.4, heat_wave: 0.1 },
+    weatherBias: { clear: 0.8, dust_storm: 1.5, radiation_spell: 0.1, cold_snap: 0.4, heat_wave: 0.1, meteor_shower: 0.1, solar_flare: 0.1, acid_rain: 0.0 },
     hazardEn: 'Thin CO₂ air, dust storms, −100°C nights.',
     hazardAr: 'هواء CO₂ رقيق وعواصف غبار وليالٍ −100°م.',
   },
@@ -146,7 +146,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#5d452a',
     sun: '#ffe0a0',
     bias: bias(0.2, 1.6, 1.3, 0.8, 0.05),
-    weatherBias: { clear: 0.6, dust_storm: 0.4, radiation_spell: 0.1, cold_snap: 0.1, heat_wave: 2.0 },
+    weatherBias: { clear: 0.6, dust_storm: 0.4, radiation_spell: 0.1, cold_snap: 0.1, heat_wave: 2.0, meteor_shower: 0.0, solar_flare: 0.1, acid_rain: 1.0 },
     hazardEn: 'Crushing pressure and 464°C: only short surface stays.',
     hazardAr: 'ضغط ساحق و464°م: فترات سطح قصيرة فقط.',
   },
@@ -165,7 +165,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#4a433b',
     sun: '#fff4dd',
     bias: bias(0.9, 1.4, 1.8, 1.2, 0.02),
-    weatherBias: { clear: 1.0, dust_storm: 0.3, radiation_spell: 0.2, cold_snap: 0.3, heat_wave: 0.1 },
+    weatherBias: { clear: 1.0, dust_storm: 0.3, radiation_spell: 0.2, cold_snap: 0.3, heat_wave: 0.1, meteor_shower: 0.3, solar_flare: 0.1, acid_rain: 0.0 },
     hazardEn: 'Microgravity: anchor every step or drift away.',
     hazardAr: 'جذب شبه معدوم: ثبّت كل خطوة أو ستنجرف.',
   },
@@ -184,7 +184,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#6d5741',
     sun: '#ffe9c6',
     bias: bias(0.1, 0.2, 0.6, 0.9, 0.4),
-    weatherBias: { clear: 0.4, dust_storm: 0.2, radiation_spell: 2.0, cold_snap: 0.5, heat_wave: 0.1 },
+    weatherBias: { clear: 0.4, dust_storm: 0.2, radiation_spell: 2.0, cold_snap: 0.5, heat_wave: 0.1, meteor_shower: 0.1, solar_flare: 0.3, acid_rain: 0.0 },
     hazardEn: 'Floating platform only: gravity and radiation are lethal.',
     hazardAr: 'منصة عائمة فقط: الجذب والإشعاع قاتلان.',
   },
@@ -203,7 +203,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#9fb6ca',
     sun: '#eaf4ff',
     bias: bias(2.4, 0.6, 0.5, 0.8, 0.05),
-    weatherBias: { clear: 0.5, dust_storm: 0.1, radiation_spell: 1.5, cold_snap: 1.0, heat_wave: 0.05 },
+    weatherBias: { clear: 0.5, dust_storm: 0.1, radiation_spell: 1.5, cold_snap: 1.0, heat_wave: 0.05, meteor_shower: 0.2, solar_flare: 0.1, acid_rain: 0.0 },
     hazardEn: 'Jupiter’s radiation belts and ice quakes.',
     hazardAr: 'أحزمة إشعاع المشتري وزلازل جليدية.',
   },
@@ -222,7 +222,7 @@ export const SURFACE_PROFILES: Record<string, SurfaceProfile> = {
     groundAlt: '#4f3d24',
     sun: '#ffd9a0',
     bias: bias(1.8, 1.2, 0.7, 0.3, 1.6),
-    weatherBias: { clear: 0.7, dust_storm: 0.6, radiation_spell: 0.1, cold_snap: 0.8, heat_wave: 0.05 },
+    weatherBias: { clear: 0.7, dust_storm: 0.6, radiation_spell: 0.1, cold_snap: 0.8, heat_wave: 0.05, meteor_shower: 0.1, solar_flare: 0.1, acid_rain: 0.4 },
     hazardEn: 'Methane lakes, −179°C, thick orange haze.',
     hazardAr: 'بحيرات ميثان و−179°م وضباب برتقالي كثيف.',
   },
@@ -399,6 +399,9 @@ export const WEATHER_EFFECTS: Record<WeatherId, WeatherEffect> = {
   radiation_spell: { drainMult: 1.0, radiationMult: 2.0, visibility: 0.2 },
   cold_snap: { drainMult: 1.4, radiationMult: 1.0, visibility: 0.1 },
   heat_wave: { drainMult: 1.15, radiationMult: 1.0, visibility: 0.05 },
+  meteor_shower: { drainMult: 1.1, radiationMult: 1.0, visibility: 0.4 },
+  solar_flare: { drainMult: 1.05, radiationMult: 1.5, visibility: 0.15 },
+  acid_rain: { drainMult: 1.3, radiationMult: 1.0, visibility: 0.5 },
 };
 
 export interface UpgradeCostPart {
