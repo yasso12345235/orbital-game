@@ -44,7 +44,7 @@ export function ResultsScreen() {
     return (
       <div className="ma-panel p-8 text-center">
         <p className="text-sm text-[var(--ma-muted)]">{lang === 'ar' ? 'لا نتائج بعد.' : 'No results yet.'}</p>
-        <button type="button" className="mt-4 px-6 py-2 rounded-full bg-[var(--ma-accent)] text-[#04122a] text-xs font-bold uppercase" onClick={() => setScreen('missionSelect')}>
+        <button type="button" className="ma-pill ma-pill-accent ma-pill-sm mt-4" onClick={() => setScreen('missionSelect')}>
           {t('newMission')}
         </button>
       </div>
