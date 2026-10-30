@@ -40,6 +40,7 @@ import {
   SURFACE_PROFILES,
   UPGRADES,
   costParts,
+  endlessPressure,
   type ModuleKind,
   type ResourceId,
   type SolGoal,
@@ -114,6 +115,7 @@ export function SurfaceScreen() {
   const surfaceSuitColor = useMission((s) => s.surfaceSuitColor);
   const surfaceUnlockRover = useMission((s) => s.surfaceUnlockRover);
   const surfaceScoutDrone = useMission((s) => s.surfaceScoutDrone);
+  const surfaceToggleEndless = useMission((s) => s.surfaceToggleEndless);
   const surfaceExport = useMission((s) => s.surfaceExport);
   const surfaceCheckSolGoal = useMission((s) => s.surfaceCheckSolGoal);
   const surfaceCompleteSolGoal = useMission((s) => s.surfaceCompleteSolGoal);
@@ -253,6 +255,11 @@ export function SurfaceScreen() {
               <div className="ma-num" style={{ color: surface.weather === 'clear' ? 'var(--ma-good)' : 'var(--ma-warn)' }}>
                 {lang === 'ar' ? WEATHER_LABELS[surface.weather].ar : WEATHER_LABELS[surface.weather].en}
               </div>
+              {surface.endless && (
+                <div className="ma-num" style={{ color: 'var(--ma-warn)' }}>
+                  {lang === 'ar' ? 'لا نهاية' : 'ENDLESS'} ×{endlessPressure(surface.hours).toFixed(2)}
+                </div>
+              )}
               {surface.currentSolGoal && (
                 <div className="ma-num" style={{ color: 'var(--ma-accent)' }} title={surface.currentSolGoal.en}>
                   {lang === 'ar' ? surface.currentSolGoal.ar : surface.currentSolGoal.en}
@@ -587,6 +594,16 @@ export function SurfaceScreen() {
               <span>{lang === 'ar' ? 'خبرة' : 'XP'} <b className="ma-num text-[var(--ma-gold)]">{surface.xp}</b></span>
               <span>{lang === 'ar' ? 'المركبة' : 'ROVER'} <b className={`ma-num text-[var(--ma-gold)] ${surface.roverUnlocked ? 'text-[var(--ma-good)]' : ''}`}>{surface.roverUnlocked ? (lang === 'ar' ? 'مفتوحة' : 'UNLOCKED') : (lang === 'ar' ? 'مغلقة' : 'LOCKED')}</b></span>
             </div>
+            <button
+              type="button"
+              className={`ma-pill ma-pill-sm ${surface.endless ? 'ma-pill-accent' : ''}`}
+              disabled={surface.status !== 'active'}
+              onClick={() => surfaceToggleEndless(!surface.endless)}
+            >
+              {surface.endless
+                ? (lang === 'ar' ? 'إيقاف وضع اللانهاية' : 'ENDLESS MODE ON')
+                : (lang === 'ar' ? 'وضع اللانهاية' : 'ENDLESS MODE')}
+            </button>
             <button
               type="button"
               className="ma-pill ma-pill-accent ma-pill-sm"

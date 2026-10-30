@@ -443,6 +443,16 @@ export const ROVER_SPEED_BONUS = 0.6; // +60% surface speed when rover is unlock
 export const SCOUT_DRONE_COST: Partial<Record<ResourceId, number>> = { regolith: 10, ore: 4, crystal: 2 };
 export const SCOUT_DRONE_DURATION_HOURS = 6; // How long the drone's target hint stays valid
 
+/** Endless survival: every sol survived raises the life-support pressure. */
+export const ENDLESS_PRESSURE_PER_SOL = 0.12; // +12% drain per completed sol
+export const ENDLESS_MAX_PRESSURE = 2.5; // hard ceiling so a run stays playable
+
+/** Life-support drain multiplier for an endless run at a given local hour. */
+export function endlessPressure(hours: number): number {
+  const sols = Math.max(0, Math.floor(hours / 24));
+  return Math.min(ENDLESS_MAX_PRESSURE, 1 + sols * ENDLESS_PRESSURE_PER_SOL);
+}
+
 /* ------------------------------------------------------------------ sol goals */
 
 /** A daily survival objective, assigned per sol (24 local hours). */

@@ -498,6 +498,7 @@ function sanitizeSurface(raw: unknown): SurfaceState | null {
     gathered: Math.round(num(raw.gathered, 0, 0, 1e6)),
     walked: num(raw.walked, 0, 0, 1e9),
     roverUnlocked: bool(raw.roverUnlocked, false),
+    endless: bool(raw.endless, false),
     currentSolGoal: null,
     solGoalsCompleted: [],
     lastSol: 0,

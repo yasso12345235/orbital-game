@@ -16,6 +16,7 @@ import {
   repairSuit,
   resupply,
   scoutDrone,
+  setEndless,
   unlockRover,
   levelOf,
   solOf,
@@ -23,9 +24,12 @@ import {
 } from '../src/game/surface/engine';
 import { surfaceNodes } from '../src/game/surface/nodes';
 import {
+  ENDLESS_MAX_PRESSURE,
+  ENDLESS_PRESSURE_PER_SOL,
   ROVER_COST,
   SCOUT_DRONE_COST,
   SCOUT_DRONE_DURATION_HOURS,
+  endlessPressure,
   surfaceProfileFor,
 } from '../src/game/surface/model';
 
@@ -229,5 +233,39 @@ describe('surface — rover, scout drone and progress', () => {
     const s = fresh({ xp: 250, hours: 30 });
     expect(levelOf(s)).toBe(1 + Math.floor(250 / 120));
     expect(solOf(s)).toBe(2);
+  });
+});
+
+describe('surface — endless survival', () => {
+  it('ramps pressure per sol and clamps at the ceiling', () => {
+    expect(endlessPressure(0)).toBe(1);
+    expect(endlessPressure(23)).toBe(1);
+    expect(endlessPressure(24)).toBeCloseTo(1 + ENDLESS_PRESSURE_PER_SOL);
+    expect(endlessPressure(24 * 3)).toBeCloseTo(1 + ENDLESS_PRESSURE_PER_SOL * 3);
+    expect(endlessPressure(24 * 100)).toBe(ENDLESS_MAX_PRESSURE);
+  });
+
+  it('starts a run in endless mode on request', () => {
+    expect(createSurface({ target: 'mars', seed: 7 }).endless).toBe(false);
+    expect(createSurface({ target: 'mars', seed: 7, endless: true }).endless).toBe(true);
+  });
+
+  it('toggles endless only while the run is active', () => {
+    const on = setEndless(fresh(), true);
+    expect(on.ok).toBe(true);
+    expect(on.state.endless).toBe(true);
+    expect(setEndless(on.state, true).ok).toBe(false);
+    expect(setEndless(on.state, false).state.endless).toBe(false);
+    const over = fresh({ status: 'rescued' });
+    expect(setEndless(over, true).ok).toBe(false);
+  });
+
+  it('drains life support faster once pressure is above 1', () => {
+    const base = fresh({ hours: 72, water: 100, food: 100, o2: 100 });
+    const normal = tickSurface(base, 1).state;
+    const hard = tickSurface({ ...base, endless: true }, 1).state;
+    expect(hard.water).toBeLessThan(normal.water);
+    expect(hard.food).toBeLessThan(normal.food);
+    expect(hard.o2).toBeLessThan(normal.o2);
   });
 });

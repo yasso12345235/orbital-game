@@ -8,6 +8,7 @@
 import {
   BASE_RADIUS,
   DRAIN,
+  ENDLESS_MAX_PRESSURE,
   MODULE_IDS,
   MODULES,
   NODE_YIELD,
@@ -20,6 +21,7 @@ import {
   UPGRADES,
   WEATHER_EFFECTS,
   XP,
+  endlessPressure,
   levelForXp,
   pickSolGoal,
   surfaceProfileFor,
@@ -83,6 +85,8 @@ export interface SurfaceState {
   weatherHours: number;
   /** Rover unlocked status — increases surface speed. */
   roverUnlocked: boolean;
+  /** Endless survival: life-support pressure rises every sol. */
+  endless: boolean;
   /** Current sol (24h) survival objective. */
   currentSolGoal: SolGoal | null;
   /** IDs of completed sol goals. */
@@ -161,6 +165,7 @@ export interface CreateSurfaceInput {
   seed?: number;
   callsign?: string;
   suitColor?: string;
+  endless?: boolean;
 }
 
 export function createSurface(input: CreateSurfaceInput): SurfaceState {
@@ -191,6 +196,7 @@ export function createSurface(input: CreateSurfaceInput): SurfaceState {
     weather: 'clear',
     weatherHours: 0,
     roverUnlocked: false,
+    endless: input.endless === true,
     currentSolGoal: null,
     solGoalsCompleted: [],
     lastSol: 0,
@@ -307,6 +313,9 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   const nextWeather = pickWeather(profile, state.seed, state.hours + hours);
   const weatherChanged = nextWeather !== state.weather;
   const effect = WEATHER_EFFECTS[nextWeather];
+  // Endless runs ramp the life-support cost every sol survived.
+  const pressure = state.endless ? endlessPressure(state.hours) : 1;
+  const drainMult = effect.drainMult * pressure;
 
   // Sol (24h) goal assignment: pick a new goal when the sol changes.
   const currentSol = Math.floor((state.hours + hours) / 24);
@@ -331,12 +340,12 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   let integrity = state.integrity;
   let charge = state.charge;
 
-  // Life support draw (modified by current weather).
-  o2 -= DRAIN.o2 * e.o2Drain * hours * effect.drainMult;
-  water -= DRAIN.water * hours;
-  food -= DRAIN.food * hours;
-  warmth -= (DRAIN.warmth + cold * 0.42 + heat * 0.5) * e.warmthDrain * hours * effect.drainMult;
-  charge -= DRAIN.charge * hours * effect.drainMult;
+  // Life support draw (modified by weather and endless pressure).
+  o2 -= DRAIN.o2 * e.o2Drain * hours * drainMult;
+  water -= DRAIN.water * hours * pressure;
+  food -= DRAIN.food * hours * pressure;
+  warmth -= (DRAIN.warmth + cold * 0.42 + heat * 0.5) * e.warmthDrain * hours * drainMult;
+  charge -= DRAIN.charge * hours * drainMult;
 
   // Solar recharge (suit skin + array at base).
   const solarGain = 0.55 * sun * e.solar;
@@ -462,6 +471,17 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
   if (solChanged && currentSolGoal) {
     const label = currentSolGoal.en;
     events.push({ msg: `New sol goal: ${label}.`, kind: 'info' });
+  }
+
+  // Endless mode: announce each pressure step so the ramp is legible.
+  if (state.endless && solChanged) {
+    const nextPressure = endlessPressure(state.hours + hours);
+    if (nextPressure > pressure || pressure >= ENDLESS_MAX_PRESSURE) {
+      events.push({
+        msg: `Endless pressure ×${nextPressure.toFixed(2)} — life support costs climbing.`,
+        kind: 'warn',
+      });
+    }
   }
 
   const crossed = (before: number, after: number, limit: number) => before > limit && after <= limit;
@@ -660,6 +680,36 @@ export function renameSurvivor(state: SurfaceState, callsign: string): SurfaceSt
   return { ...state, callsign: clean || state.callsign };
 }
 
+/** Toggle the endless survival pressure. Allowed while the expedition is active. */
+export function setEndless(state: SurfaceState, on: boolean): ActionResult {
+  if (state.status !== 'active') {
+    return { ok: false, state, message: 'The expedition is already over.' };
+  }
+  if (state.endless === on) {
+    return { ok: false, state, message: on ? 'Endless survival is already on.' : 'Endless survival is already off.' };
+  }
+  const next: SurfaceState = {
+    ...state,
+    endless: on,
+    log: pushLog(
+      state,
+      on ? 'Endless survival enabled — life support pressure will rise each sol.' : 'Endless survival disabled — life support pressure reset.',
+      on ? 'warn' : 'good',
+    ),
+  };
+  return {
+    ok: true,
+    state: next,
+    message: on ? 'Endless survival — pressure rises each sol.' : 'Endless survival off.',
+    events: [
+      {
+        msg: on ? 'Endless survival enabled.' : 'Endless survival disabled.',
+        kind: on ? 'warn' : 'good',
+      },
+    ],
+  };
+}
+
 export function levelOf(state: SurfaceState): number {
   return levelForXp(state.xp);
 }
@@ -669,8 +719,7 @@ export function solOf(state: SurfaceState): number {
   return Math.floor(state.hours / 24) + 1;
 }
 
-export function unlockRover(state: SurfaceState): ActionResult {
-  if (state.roverUnlocked) {
+export function unlockRover(state: SurfaceState): ActionResult {  if (state.roverUnlocked) {
     return { ok: false, state, message: 'Rover already unlocked.' };
   }
   if (!canAfford(state, ROVER_COST)) {

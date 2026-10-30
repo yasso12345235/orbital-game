@@ -40,6 +40,7 @@ import {
   checkSolGoal,
   completeSolGoal,
   scoutDrone,
+  setEndless,
   levelOf,
   solOf,
   upgradeSuit as engineUpgradeSuit,
@@ -201,6 +202,7 @@ interface MissionStore {
   surfaceCheckSolGoal: () => { completed: boolean; goal: SolGoal | null };
   surfaceCompleteSolGoal: () => void;
   surfaceScoutDrone: () => void;
+  surfaceToggleEndless: (on: boolean) => void;
   surfaceExport: () => void;
   endExpedition: () => void;
 
@@ -1099,9 +1101,23 @@ export const useMission = create<MissionStore>((set, get) => ({
     scheduleSave();
   },
 
-  surfaceExport: () => {
+  surfaceToggleEndless: (on) => {
     const surface = get().surface;
     if (!surface) return;
+    const res = setEndless(surface, on);
+    if (!res.ok) {
+      get().pushToast(res.message, 'warn');
+      if (get().settings.sound) sound.play('error');
+      return;
+    }
+    set({ surface: res.state });
+    get().pushToast(res.message, on ? 'warn' : 'good');
+    if (get().settings.sound) sound.play(on ? 'alarm' : 'confirm');
+    scheduleSave();
+  },
+
+  surfaceExport: () => {
+    const surface = get().surface;    if (!surface) return;
     const exportData = {
       version: 2,
       exportedAt: new Date().toISOString(),
@@ -1129,6 +1145,7 @@ export const useMission = create<MissionStore>((set, get) => ({
       weather: surface.weather,
       weatherHours: surface.weatherHours,
       roverUnlocked: surface.roverUnlocked,
+      endless: surface.endless,
       scoutDroneTarget: surface.scoutDroneTarget,
       solGoalsCompleted: surface.solGoalsCompleted,
       log: surface.log,
