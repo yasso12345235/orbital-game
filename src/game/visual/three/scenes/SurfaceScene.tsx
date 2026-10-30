@@ -387,7 +387,7 @@ function BuiltModule({ kind, slot }: { kind: string; slot: number }) {
   );
 }
 
-function ResourceDeposit({ node, taken }: { node: SurfaceNode; taken: boolean }) {
+function ResourceDeposit({ node, taken, scout }: { node: SurfaceNode; taken: boolean; scout?: boolean }) {
   const q = useVisualQuality();
   const group = useRef<Group>(null);
   const color = RESOURCES.find((r) => r.id === node.kind)?.color ?? '#7fd8ff';
@@ -432,6 +432,30 @@ function ResourceDeposit({ node, taken }: { node: SurfaceNode; taken: boolean })
         <meshBasicMaterial color={color} transparent opacity={0.25} side={DoubleSide} depthWrite={false} />
       </mesh>
       <pointLight color={color} intensity={2.2} distance={7} decay={2} />
+      {scout && (
+        <group>
+          {/* scout drone marker: tall gold beacon visible across the basin */}
+          <mesh position-y={9}>
+            <cylinderGeometry args={[0.075, 0.13, 18, 10, 1, true]} />
+            <meshBasicMaterial
+              color="#f5c451"
+              transparent
+              opacity={0.55}
+              side={DoubleSide}
+              depthWrite={false}
+              blending={AdditiveBlending}
+            />
+          </mesh>
+          <mesh rotation-x={-Math.PI / 2} position-y={-0.58}>
+            <ringGeometry args={[1.6, 2.0, 42]} />
+            <meshBasicMaterial color="#f5c451" transparent opacity={0.6} side={DoubleSide} depthWrite={false} />
+          </mesh>
+          <mesh position-y={17.5}>
+            <octahedronGeometry args={[0.42, 0]} />
+            <meshBasicMaterial color="#f5c451" transparent opacity={0.85} />
+          </mesh>
+        </group>
+      )}
       {[0, 1, 2].map((i) => (
         <mesh key={i} position={[Math.cos(i * 2.1) * 0.95, -0.32, Math.sin(i * 2.1) * 0.95]} rotation-y={i}>
           <tetrahedronGeometry args={[0.24, 0]} />
@@ -658,7 +682,12 @@ export function SurfaceScene(props: SurfaceSceneProps) {
         <BuiltModule key={m.kind} kind={m.kind} slot={m.slot} />
       ))}
       {nodes.map((n) => (
-        <ResourceDeposit key={n.id} node={n} taken={surface.taken.includes(n.id)} />
+        <ResourceDeposit
+          key={n.id}
+          node={n}
+          taken={surface.taken.includes(n.id)}
+          scout={surface.scoutDroneTarget?.id === n.id}
+        />
       ))}
       <Rocks profile={profile} seed={surface.seed} />
       <Horizon profile={profile} hours={surface.hours} />

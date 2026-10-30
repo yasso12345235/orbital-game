@@ -427,7 +427,15 @@ export function tickSurface(state: SurfaceState, hours: number): TickResult {
     currentSolGoal,
     solGoalsCompleted,
     lastSol: currentSol,
+    scoutDroneTarget:
+      state.scoutDroneTarget && state.hours + hours >= state.scoutDroneExpiresAt
+        ? null
+        : state.scoutDroneTarget,
   };
+
+  if (state.scoutDroneTarget && next.scoutDroneTarget === null) {
+    events.push({ msg: 'Scout drone telemetry expired — target marker lost.', kind: 'info' });
+  }
 
   // Weather change announcement.
   if (weatherChanged) {

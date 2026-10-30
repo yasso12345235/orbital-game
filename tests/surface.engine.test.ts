@@ -15,10 +15,19 @@ import {
   upgradeSuit,
   repairSuit,
   resupply,
+  scoutDrone,
+  unlockRover,
+  levelOf,
+  solOf,
   type SurfaceState,
 } from '../src/game/surface/engine';
 import { surfaceNodes } from '../src/game/surface/nodes';
-import { surfaceProfileFor } from '../src/game/surface/model';
+import {
+  ROVER_COST,
+  SCOUT_DRONE_COST,
+  SCOUT_DRONE_DURATION_HOURS,
+  surfaceProfileFor,
+} from '../src/game/surface/model';
 
 const fresh = (over: Partial<SurfaceState> = {}): SurfaceState => ({
   ...createSurface({ target: 'mars', seed: 42 }),
@@ -170,5 +179,55 @@ describe('surface — gathering, building, upgrading', () => {
     const moved = moveSurvivor(fresh(), 500, 0);
     expect(Math.hypot(moved.x, moved.z)).toBeLessThanOrEqual(90);
     expect(moved.walked).toBeGreaterThan(0);
+  });
+});
+
+describe('surface — rover, scout drone and progress', () => {
+  it('unlocks the rover once at base and deducts the cost', () => {
+    const s = fresh({ inventory: { ice: 40, regolith: 40, ore: 40, crystal: 40, biomass: 40 } });
+    const res = unlockRover(s);
+    expect(res.ok).toBe(true);
+    expect(res.state.roverUnlocked).toBe(true);
+    expect(res.state.inventory.regolith).toBe(s.inventory.regolith - (ROVER_COST.regolith ?? 0));
+    expect(unlockRover(res.state).ok).toBe(false);
+  });
+
+  it('refuses the rover without materials', () => {
+    const poor = fresh({ inventory: { ice: 0, regolith: 0, ore: 0, crystal: 0, biomass: 0 } });
+    expect(unlockRover(poor).ok).toBe(false);
+  });
+
+  it('scout drone marks the nearest free deposit and charges the cost', () => {
+    const s = fresh({ inventory: { ice: 40, regolith: 40, ore: 40, crystal: 40, biomass: 40 } });
+    const res = scoutDrone(s);
+    expect(res.ok).toBe(true);
+    const target = res.state.scoutDroneTarget;
+    expect(target).not.toBeNull();
+    expect(res.state.scoutDroneExpiresAt).toBe(s.hours + SCOUT_DRONE_DURATION_HOURS);
+    expect(res.state.inventory.regolith).toBe(s.inventory.regolith - (SCOUT_DRONE_COST.regolith ?? 0));
+
+    const free = surfaceNodes(s.seed, s.target).filter((n) => !s.taken.includes(n.id));
+    const nearest = free.reduce((best, n) => {
+      const d = Math.hypot(n.x - s.x, n.z - s.z);
+      const bd = Math.hypot(best.x - s.x, best.z - s.z);
+      return d < bd ? n : best;
+    });
+    expect(target?.id).toBe(nearest.id);
+  });
+
+  it('scout drone needs materials and an unclaimed deposit', () => {
+    const poor = fresh({ inventory: { ice: 0, regolith: 0, ore: 0, crystal: 0, biomass: 0 } });
+    expect(scoutDrone(poor).ok).toBe(false);
+    const allTaken = fresh({
+      inventory: { ice: 40, regolith: 40, ore: 40, crystal: 40, biomass: 40 },
+      taken: surfaceNodes(fresh().seed, fresh().target).map((n) => n.id),
+    });
+    expect(scoutDrone(allTaken).ok).toBe(false);
+  });
+
+  it('derives level and sol from state', () => {
+    const s = fresh({ xp: 250, hours: 30 });
+    expect(levelOf(s)).toBe(1 + Math.floor(250 / 120));
+    expect(solOf(s)).toBe(2);
   });
 });

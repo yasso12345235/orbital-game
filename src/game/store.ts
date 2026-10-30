@@ -40,6 +40,8 @@ import {
   checkSolGoal,
   completeSolGoal,
   scoutDrone,
+  levelOf,
+  solOf,
   upgradeSuit as engineUpgradeSuit,
   type SurfaceNode,
   type SurfaceState,
@@ -199,6 +201,7 @@ interface MissionStore {
   surfaceCheckSolGoal: () => { completed: boolean; goal: SolGoal | null };
   surfaceCompleteSolGoal: () => void;
   surfaceScoutDrone: () => void;
+  surfaceExport: () => void;
   endExpedition: () => void;
 
   // meta
@@ -1093,6 +1096,56 @@ export const useMission = create<MissionStore>((set, get) => ({
     set({ surface: res.state });
     get().pushToast(res.message, 'good');
     if (get().settings.sound) sound.play('scan');
+    scheduleSave();
+  },
+
+  surfaceExport: () => {
+    const surface = get().surface;
+    if (!surface) return;
+    const exportData = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      target: surface.target,
+      callsign: surface.callsign,
+      suitColor: surface.suitColor,
+      seed: surface.seed,
+      hours: surface.hours,
+      sol: solOf(surface),
+      inventory: surface.inventory,
+      gathered: surface.gathered,
+      walked: surface.walked,
+      xp: surface.xp,
+      level: levelOf(surface),
+      modules: surface.modules,
+      taken: surface.taken,
+      upgrades: surface.upgrades,
+      o2: surface.o2,
+      water: surface.water,
+      food: surface.food,
+      warmth: surface.warmth,
+      charge: surface.charge,
+      radiation: surface.radiation,
+      integrity: surface.integrity,
+      weather: surface.weather,
+      weatherHours: surface.weatherHours,
+      roverUnlocked: surface.roverUnlocked,
+      scoutDroneTarget: surface.scoutDroneTarget,
+      solGoalsCompleted: surface.solGoalsCompleted,
+      log: surface.log,
+      status: surface.status,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const safeName = (surface.callsign || 'CREW').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orbital_surface_${safeName}_${surface.target}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    get().pushToast('Surface state exported.', 'good');
+    if (get().settings.sound) sound.play('confirm');
     scheduleSave();
   },
 

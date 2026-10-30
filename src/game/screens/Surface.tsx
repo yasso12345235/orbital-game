@@ -114,6 +114,7 @@ export function SurfaceScreen() {
   const surfaceSuitColor = useMission((s) => s.surfaceSuitColor);
   const surfaceUnlockRover = useMission((s) => s.surfaceUnlockRover);
   const surfaceScoutDrone = useMission((s) => s.surfaceScoutDrone);
+  const surfaceExport = useMission((s) => s.surfaceExport);
   const surfaceCheckSolGoal = useMission((s) => s.surfaceCheckSolGoal);
   const surfaceCompleteSolGoal = useMission((s) => s.surfaceCompleteSolGoal);
   const endExpedition = useMission((s) => s.endExpedition);
@@ -255,6 +256,12 @@ export function SurfaceScreen() {
               {surface.currentSolGoal && (
                 <div className="ma-num" style={{ color: 'var(--ma-accent)' }} title={surface.currentSolGoal.en}>
                   {lang === 'ar' ? surface.currentSolGoal.ar : surface.currentSolGoal.en}
+                </div>
+              )}
+              {surface.scoutDroneTarget && (
+                <div className="ma-num" style={{ color: 'var(--ma-gold)' }}>
+                  {lang === 'ar' ? 'طائرة:' : 'DRONE:'}{' '}
+                  {Math.hypot(surface.scoutDroneTarget.x - surface.x, surface.scoutDroneTarget.z - surface.z).toFixed(0)} m
                 </div>
               )}
               <div className="ma-num" style={{ color: inBase ? 'var(--ma-good)' : 'var(--ma-muted)' }}>
@@ -580,6 +587,14 @@ export function SurfaceScreen() {
               <span>{lang === 'ar' ? 'خبرة' : 'XP'} <b className="ma-num text-[var(--ma-gold)]">{surface.xp}</b></span>
               <span>{lang === 'ar' ? 'المركبة' : 'ROVER'} <b className={`ma-num text-[var(--ma-gold)] ${surface.roverUnlocked ? 'text-[var(--ma-good)]' : ''}`}>{surface.roverUnlocked ? (lang === 'ar' ? 'مفتوحة' : 'UNLOCKED') : (lang === 'ar' ? 'مغلقة' : 'LOCKED')}</b></span>
             </div>
+            <button
+              type="button"
+              className="ma-pill ma-pill-accent ma-pill-sm"
+              disabled={surface.status !== 'active'}
+              onClick={surfaceExport}
+            >
+              {lang === 'ar' ? 'تصدير حالة السطح' : 'EXPORT SURFACE'}
+            </button>
           </div>
         </section>
       )}
