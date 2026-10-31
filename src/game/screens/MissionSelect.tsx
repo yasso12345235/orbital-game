@@ -189,6 +189,13 @@ export function MissionSelectScreen() {
                   <span className="block" style={{ width: size, height: size }}>
                     <MiniGlobe target={m.target} size={size} className={selected ? 'drop-shadow-[0_0_20px_rgba(70,200,255,0.4)]' : ''} />
                   </span>
+                  {selected && (
+                    <span
+                      className="absolute -inset-2 rounded-full border border-dashed border-[var(--ma-accent)] animate-spin opacity-75 pointer-events-none"
+                      style={{ animationDuration: '12s' }}
+                      aria-hidden
+                    />
+                  )}
                   {/* status dot — real record/unlock state */}
                   <span
                     className="absolute -bottom-1 -end-1 grid place-items-center rounded-full"
@@ -218,7 +225,7 @@ export function MissionSelectScreen() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] gap-4">
         {/* ---------------------------------------------- live planet panel */}
-        <section className="ma-panel p-4 flex flex-col items-center">
+        <section className="ma-panel ma-laser-glow p-4 flex flex-col items-center border border-[color-mix(in_srgb,var(--ma-accent)_30%,var(--ma-line))]">
           <PanelTag ar="الكوكب المباشر" en="LIVE PLANET" />
           <div className="ma-holo relative w-full max-w-[340px] h-[228px] rounded-xl overflow-hidden my-1">
             <Suspense
@@ -253,7 +260,8 @@ export function MissionSelectScreen() {
         </section>
 
         {/* ---------------------------------------------- briefing panel */}
-        <section className="ma-panel p-4" aria-label={t('briefing')}>
+        <section className="ma-panel ma-laser-glow p-4 relative overflow-hidden border border-[color-mix(in_srgb,var(--ma-accent)_30%,var(--ma-line))]" aria-label={t('briefing')}>
+          <span className="ma-hologram-scan" aria-hidden />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <PanelTag ar="إحاطة الطيران" en="FLIGHT BRIEFING" />
             {status && (

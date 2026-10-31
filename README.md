@@ -2,7 +2,8 @@
 
 An educational space-mission game: design a spacecraft, pick a launcher, tune an orbit, fly the
 launch, operate the mission in real time, and get scored + debriefed — with the real physics shown
-at every step. Standalone app (no backend, no network, no accounts); bilingual Arabic/English.
+at every step. Standalone app (no backend required; works fully offline). Optional backend for
+user accounts, cloud saves, and global leaderboards. Bilingual Arabic/English.
 The visible shell is branded **ORBITAL — Space Mission Lab**; the in-world mission name remains
 the "Mission Architect Program" and save keys stay stable across versions (`ma_save_v1` is still
 read; new saves live in `ma_save_v2`).
@@ -17,6 +18,13 @@ npm run test:visual # scripted EN/RTL/reduced-motion walkthrough (+ screenshots)
 npm run test:mobile # 375/768 responsive walkthrough (overflow, 44px targets, scroll rails)
 npm run verify      # typecheck + unit tests + visual + mobile walkthroughs
 npm run preview     # serve the production build locally
+npm run server:dev  # backend (Express + SQLite) on http://localhost:8787
+```
+
+Optional backend (`server/`): Express + TypeScript + sql.js (SQLite in WASM, no native build).
+Provides JWT auth, per-user cloud saves, and global per-mission leaderboards. Frontend client at
+`src/game/api.ts`. Set `ORBITAL_JWT_SECRET` and `ORBITAL_CORS_ORIGIN` for production.
+
 ```
 
 Everything ships in the bundle: fonts (`@fontsource`), procedural planet textures drawn on canvas,
@@ -45,6 +53,12 @@ synthesized Web Audio sounds, and JSON game data — so the game runs fully offl
   ≥44px targets, real horizontal scrolling (carousel + tree) and zero console errors. It
   writes **26** screenshots plus `artifacts/mobile-check/summary.json`, exits non-zero on
   failure and runs as part of `npm run verify`. Verification: **116/116 mobile checks**.
+
+### What's new in 1.7 — toolchain & security upgrade
+
+* **Dependency & toolchain upgrade** — Vite 5 → 8, Vitest 2 → 5, `@vitejs/plugin-react` 4 → 6, plus patch bumps for `zustand`, `postcss` and `autoprefixer`. Build output is unchanged (R3F/three/react runtime untouched), so all 3D visuals and behavior carry over exactly.
+* **Security** — `npm audit` now reports **0 vulnerabilities** (resolved the critical tinypool RCE gadgets and the vite/esbuild path-traversal issues via the toolchain upgrade).
+* **Verified** — `tsc --noEmit` clean, **153 unit/integration tests** pass, production build (`dist/`) green. Visual + mobile gates require Chrome/Playwright and passed previously at 18/18 visual and 116/116 mobile checks.
 
 ### What's new in 1.5 — continuity (save v2, backup, verifiable builds)
 

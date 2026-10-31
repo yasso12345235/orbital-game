@@ -161,12 +161,12 @@ export function HomeScreen() {
       : { tone: 'muted' as const, text: t('locked') };
 
   return (
-    <div className="ma-home-shell relative isolate overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--ma-accent)_16%,var(--ma-line))] min-h-[calc(100vh-128px)] flex flex-col">
-      {/* Cinematic orbit hairlines + sun flare behind the planet. */}
+    <div className="ma-home-shell relative isolate overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--ma-accent)_24%,var(--ma-line))] min-h-[calc(100vh-128px)] flex flex-col p-4 sm:p-6 lg:p-8">
+      {/* Cinematic orbit hairlines + sun flare behind the planet */}
       <div className="ma-epic-rings" aria-hidden><span /><span /><span /></div>
       <div className="ma-epic-flare" aria-hidden />
 
-      {/* Deep space base + planet limb fallback (hidden once WebGL is live). */}
+      {/* Deep space base + planet limb fallback (hidden once WebGL is live) */}
       <div
         className="absolute inset-0 -z-10"
         style={{
@@ -186,245 +186,311 @@ export function HomeScreen() {
         aria-hidden
       />
 
-      {/* Living 3D hero (planet limb, starfield, flyby, meteors). */}
+      {/* Living 3D hero (planet limb, starfield, flyby, meteors) */}
       {webgl && (
         <Suspense fallback={null}>
           <LazyHomeHero target={peek.target} className="ma-hero-in absolute inset-x-0 top-0 h-[92svh] -z-10 w-full opacity-95" />
         </Suspense>
       )}
 
-      {/* Readability scrims: keep the console legible over the bright limb. */}
+      {/* Readability scrims */}
       <div
         className="absolute inset-0 -z-10 pointer-events-none"
         style={{
           background:
-            'linear-gradient(180deg, rgba(5,7,13,0.78) 0%, rgba(5,7,13,0.24) 34%, rgba(5,7,13,0.06) 52%, rgba(5,7,13,0.72) 100%), linear-gradient(100deg, rgba(5,7,13,0.62), transparent 46%)',
+            'linear-gradient(180deg, rgba(5,7,13,0.85) 0%, rgba(5,7,13,0.3) 34%, rgba(5,7,13,0.1) 52%, rgba(5,7,13,0.82) 100%), linear-gradient(100deg, rgba(5,7,13,0.65), transparent 48%)',
         }}
         aria-hidden
       />
 
-      <div className="relative z-10 flex-1 grid gap-6 lg:grid-cols-[minmax(0,1fr)_318px] p-5 sm:p-7 lg:p-9">
-        {/* ------------------------------------------------ hero column */}
-        <div className="flex min-w-0 flex-col justify-between gap-8">
-          <div className="max-w-2xl">
-            <span className="ma-epic-kicker">
-              {lang === 'ar' ? 'برنامج مهندس المهمات' : 'Mission Architect Program'}
-            </span>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <span className="ma-status" data-tone="accent"><i />{lang === 'ar' ? 'مركز التحكم متصل' : 'Mission control online'}</span>
-              <span className="ma-hudtag" dir="ltr">DEEP SPACE OPERATIONS · v1.6</span>
-            </div>
+      {/* TOP COMMAND DECK TELEMETRY BANNER */}
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pb-5 mb-5 border-b border-[color-mix(in_srgb,var(--ma-accent)_18%,var(--ma-line))]">
+        <div className="flex flex-wrap items-center gap-2.5 text-[9.5px] font-mono tracking-[0.24em] text-[var(--ma-muted)] uppercase">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[color-mix(in_srgb,var(--ma-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ma-accent)_12%,transparent)] text-[var(--ma-accent)] font-semibold shadow-[0_0_12px_rgba(61,224,255,0.25)]">
+            <span className="w-2 h-2 rounded-full bg-[var(--ma-accent)] shadow-[0_0_8px_var(--ma-accent)] animate-pulse" />
+            <span>FLIGHT CONTROL CENTER</span>
+          </span>
+          <span className="opacity-30">/</span>
+          <span className="tracking-widest">28.5721° N · 80.6480° W</span>
+          <span className="opacity-30">/</span>
+          <span className="text-[var(--ma-gold-hi)] font-bold">{lang === 'ar' ? 'عمليات المدارات الفضائية' : 'ORBITAL DYNAMICS // READY'}</span>
+        </div>
 
-            <h1 className="ma-hero-word mt-5" dir="ltr">ORBITAL</h1>
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="ma-hero-sub">{t('tagline')}</span>
-              <span className="ma-num text-[10px] tracking-[0.24em] text-[var(--ma-muted)] uppercase">
-                {lang === 'ar' ? `المستوى ${level} · ${fmt(progress.credits)} رصيد` : `LVL ${level} · ${fmt(progress.credits)} CR`}
+        <div className="flex items-center gap-3">
+          <span className="ma-status" data-tone="good">
+            <i />{lang === 'ar' ? 'الشبكة متصلة' : 'DSN ONLINE'}
+          </span>
+          <span className="ma-hudtag" dir="ltr">LVL {level} · {fmt(progress.credits)} CR</span>
+        </div>
+      </div>
+
+      {/* MAIN COCKPIT GRID: HERO LEFT + OPERATIONS WINGS RIGHT */}
+      <div className="relative z-10 flex-1 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        
+        {/* LEFT COLUMN: HERO SHOWCASE & PLANETARY STAGE */}
+        <div className="flex flex-col justify-between gap-6">
+          <div>
+            <span className="ma-epic-kicker">
+              {lang === 'ar' ? 'برنامج مهندس المهمات الفضائية' : 'Mission Architect Program // NASA-ESA-SPX Spec'}
+            </span>
+
+            <h1 className="ma-hero-word mt-3 tracking-wider font-extrabold" dir="ltr">ORBITAL</h1>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="ma-hero-sub font-semibold text-[11px] text-[var(--ma-gold-hi)]">{t('tagline')}</span>
+              <span className="text-[10px] font-mono tracking-[0.25em] text-[var(--ma-muted)] uppercase">
+                {lang === 'ar' ? 'محاكاة فيزيائية حقيقية · مدارات كبلر' : 'KEPLERIAN ASTRODYNAMICS · REAL PHYSICS'}
               </span>
             </div>
-            <p className="mt-4 max-w-xl text-[12.5px] leading-relaxed text-[var(--ma-muted)]">{t('credentials')}</p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <button type="button" className="ma-pill ma-pill-accent" onClick={continueMission}>
-                <Icon name={currentMission ? 'continue' : 'play'} size={16} />
+            <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-[var(--ma-muted)]">
+              {t('credentials')}
+            </p>
+
+            {/* Dynamic Active Flight Vector Compass */}
+            <div className="mt-5 flex items-center gap-4 p-3.5 rounded-2xl bg-[rgba(6,12,26,0.7)] border border-[color-mix(in_srgb,var(--ma-accent)_28%,var(--ma-line))] max-w-xl backdrop-blur-md shadow-[0_12px_35px_rgba(0,0,0,0.6)]">
+              <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-dashed border-[var(--ma-accent)] animate-spin opacity-75" style={{ animationDuration: '22s' }} />
+                <div className="absolute inset-2 rounded-full border border-[rgba(233,195,124,0.5)]" />
+                <div className="w-4 h-4 rounded-full bg-[radial-gradient(circle,var(--ma-accent),#071638)] shadow-[0_0_12px_var(--ma-accent)]" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_8px_#fff]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider text-[var(--ma-muted)]">
+                  <span className="text-[var(--ma-text)] font-semibold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--ma-good)] shadow-[0_0_6px_var(--ma-good)] animate-pulse" />
+                    {lang === 'ar' ? 'المسار المداري الحي' : 'ACTIVE FLIGHT VECTOR'}
+                  </span>
+                  <span className="text-[var(--ma-gold-hi)] font-bold">28.5° INC</span>
+                </div>
+                <div className="mt-1 flex flex-wrap justify-between gap-x-4 text-[11px] font-mono text-[var(--ma-muted)]">
+                  <span>{lang === 'ar' ? 'الحضيض' : 'Periapsis'}: <b className="text-[var(--ma-text)]">185 km</b></span>
+                  <span>{lang === 'ar' ? 'الأوج' : 'Apoapsis'}: <b className="text-[var(--ma-text)]">420 km</b></span>
+                  <span>v: <b className="text-[var(--ma-accent)]">7.67 km/s</b></span>
+                </div>
+              </div>
+            </div>
+
+            {/* PRIMARY LAUNCH / RESUME CTA BUTTON */}
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                className="ma-master-launch-btn group"
+                onClick={continueMission}
+              >
+                <Icon name={currentMission ? 'continue' : 'play'} size={20} className="group-hover:scale-110 transition-transform" />
                 <span>{primary}</span>
               </button>
-              <button type="button" className="ma-pill ma-pill-ghost" onClick={() => setScreen('missionSelect')} aria-label={t('missionSelect')}>
+
+              <button
+                type="button"
+                className="ma-pill ma-pill-ghost text-xs"
+                onClick={() => setScreen('missionSelect')}
+                aria-label={t('missionSelect')}
+              >
                 <Icon name="missions" size={16} />
                 <span>{t('missionSelect')}</span>
               </button>
             </div>
-
-            {/* Real progress tiles */}
-            <dl className="mt-8 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { k: lang === 'ar' ? 'المهام' : 'Missions', v: `${completedCount}/${MISSIONS.length}` },
-                { k: lang === 'ar' ? 'أفضل نتيجة' : 'Best score', v: bestScore > 0 ? bestScore.toFixed(0) : '—' },
-                { k: lang === 'ar' ? 'الرصيد' : 'Credits', v: fmt(progress.credits) },
-                { k: lang === 'ar' ? 'المستوى' : 'Level', v: String(level) },
-              ].map((s) => (
-                <div key={s.k} className="ma-epic-stat">
-                  <dt className="ma-hudtag">{s.k}</dt>
-                  <dd className="ma-num mt-2 text-[15px] text-[var(--ma-text)]">{s.v}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
-          {/* ------------------------------------ featured destination card */}
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="ma-panel relative w-full max-w-xl overflow-hidden" data-tone={peekDone ? 'good' : undefined}>
-              <div
-                className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full opacity-70 blur-[2px]"
-                style={{ background: `radial-gradient(circle at 36% 32%, ${accentForTarget(peek.target)}, #0b1a3d 58%, transparent 72%)` }}
-                aria-hidden
-              />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="ma-hudtag" dir="ltr">FEATURED TARGET · {missionTheme(peek.target).toUpperCase()}</span>
-                    <span className="ma-status" data-tone={statusChip.tone}><i />{statusChip.text}</span>
-                  </div>
-                  <h2 className="mt-2 truncate text-[17px] font-semibold tracking-wide text-[var(--ma-text)]">
-                    {lang === 'ar' ? peek.labelAr : peek.label}
-                  </h2>
-                  <p className="mt-1 max-w-sm text-[11.5px] leading-relaxed text-[var(--ma-muted)]">
-                    {peekMission
-                      ? (lang === 'ar' ? peekMission.descriptionAr ?? peekMission.description : peekMission.description)
-                      : (lang === 'ar' ? 'لا توجد مهمة مرتبطة بهذه الوجهة.' : 'No mission is linked to this destination.')}
-                  </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-1">
-                  <button type="button" className="ma-quickbtn" onClick={() => cycle(-1)} aria-label={lang === 'ar' ? 'الوجهة السابقة' : 'Previous destination'}>
-                    <Icon name={lang === 'ar' ? 'chevronRight' : 'chevronLeft'} size={16} />
-                  </button>
-                  <button type="button" className="ma-quickbtn" onClick={() => cycle(1)} aria-label={lang === 'ar' ? 'الوجهة التالية' : 'Next destination'}>
-                    <Icon name={lang === 'ar' ? 'chevronLeft' : 'chevronRight'} size={16} />
-                  </button>
-                </div>
+          {/* Real progress stats */}
+          <dl className="grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { k: lang === 'ar' ? 'المهام' : 'Missions', v: `${completedCount}/${MISSIONS.length}` },
+              { k: lang === 'ar' ? 'أفضل نتيجة' : 'Best score', v: bestScore > 0 ? bestScore.toFixed(0) : '—' },
+              { k: lang === 'ar' ? 'الرصيد' : 'Credits', v: fmt(progress.credits) },
+              { k: lang === 'ar' ? 'المستوى' : 'Level', v: String(level) },
+            ].map((s) => (
+              <div key={s.k} className="ma-epic-stat relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[rgba(233,195,124,0.3)] pointer-events-none" />
+                <dt className="ma-hudtag">{s.k}</dt>
+                <dd className="ma-num mt-2 text-[16px] font-extrabold text-[var(--ma-text)]">{s.v}</dd>
               </div>
-
-              {peekMission && (
-                <div className="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[color-mix(in_srgb,var(--ma-line)_80%,transparent)] pt-3">
-                  <span className="ma-num text-[11px] text-[var(--ma-muted)]">Δv <b className="text-[var(--ma-text)]">{peekMission.requiredDvMps}</b> m/s</span>
-                  <span className="ma-num text-[11px] text-[var(--ma-muted)]">{peekMission.durationDays} {t('days')}</span>
-                  <span className="flex items-center gap-1" aria-label={`${t('difficulty')} ${peekMission.difficultyStars}/5`}>
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Icon key={i} name="star" size={10} className={i < peekMission.difficultyStars ? 'text-[var(--ma-warn)]' : 'text-[var(--ma-line)]'} />
-                    ))}
-                  </span>
-                  {peekDone && <span className="ma-num text-[10px] text-[var(--ma-good)]">{peekDone.grade} · {peekDone.score.toFixed(0)}</span>}
-                  <button type="button" className="ma-pill ma-pill-ghost ma-pill-sm ms-auto" onClick={openFeatured}>
-                    <Icon name={peekUnlocked ? 'arrowRight' : 'lock'} size={14} />
-                    <span>{peekUnlocked ? (lang === 'ar' ? 'افتح المهمة' : 'Open mission') : t('locked')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Lab / review routes stay reachable but quiet. */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] uppercase tracking-[0.18em] text-[var(--ma-muted)]">
-            <span className="ma-hudtag" dir="ltr">{lang === 'ar' ? 'أدوات المختبر' : 'LAB TOOLS'}</span>
-            <button type="button" className="ma-tap inline-flex items-center hover:text-[var(--ma-accent)] transition-colors" aria-label={t('styleGuide')} onClick={() => setScreen('styleGuide')}>
-              {t('styleGuide')}
-            </button>
-            <span className="h-3 w-px bg-[var(--ma-line)]" aria-hidden />
-            <button type="button" className="ma-tap inline-flex items-center hover:text-[var(--ma-accent)] transition-colors" aria-label="Playground" onClick={() => setScreen('playground')}>
-              {lang === 'ar' ? 'الملعب 3D' : 'Playground'}
-            </button>
-          </div>
+            ))}
+          </dl>
         </div>
 
-        {/* ------------------------------------------------ command rail */}
-        <aside className="flex flex-col gap-3 lg:items-end">
-          <nav className="ma-menu" aria-label={lang === 'ar' ? 'قائمة القيادة' : 'Command menu'}>
-            <div className="ma-menu-head">
-              <span>{lang === 'ar' ? 'القيادة' : 'COMMAND'}</span>
-              <span className="ma-status" data-tone="accent"><i />{lang === 'ar' ? 'نشط' : 'ACTIVE'}</span>
+        {/* RIGHT COLUMN: GRAND DESTINATION SHOWCASE & OPERATIONS MODULES */}
+        <div className="flex flex-col gap-5">
+          
+          {/* FEATURED DESTINATION HOLO-STAGE */}
+          <div className="ma-holo-stage p-5 relative overflow-hidden">
+            <span className="ma-hologram-scan" aria-hidden />
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="ma-hudtag" dir="ltr">CELESTIAL INTEL · {missionTheme(peek.target).toUpperCase()}</span>
+                  <span className="ma-status" data-tone={statusChip.tone}><i />{statusChip.text}</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold tracking-wide text-[var(--ma-text)] flex items-center gap-2.5">
+                  <span>{lang === 'ar' ? peek.labelAr : peek.label}</span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.16)] text-[var(--ma-gold-hi)]">
+                    {peek.target.toUpperCase()}
+                  </span>
+                </h2>
+                <p className="mt-1 text-[12px] leading-relaxed text-[var(--ma-muted)] max-w-md">
+                  {peekMission
+                    ? (lang === 'ar' ? peekMission.descriptionAr ?? peekMission.description : peekMission.description)
+                    : (lang === 'ar' ? 'لا توجد مهمة مرتبطة بهذه الوجهة.' : 'No mission linked.')}
+                </p>
+              </div>
+
+              {/* Arrow cyclers */}
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[rgba(6,12,26,0.6)] border border-[var(--ma-line)]">
+                <button type="button" className="ma-quickbtn" onClick={() => cycle(-1)} aria-label={lang === 'ar' ? 'الوجهة السابقة' : 'Previous destination'}>
+                  <Icon name={lang === 'ar' ? 'chevronRight' : 'chevronLeft'} size={16} />
+                </button>
+                <span className="text-[11px] font-mono px-2 text-[var(--ma-muted)]">{focus + 1}/{PEEK.length}</span>
+                <button type="button" className="ma-quickbtn" onClick={() => cycle(1)} aria-label={lang === 'ar' ? 'الوجهة التالية' : 'Next destination'}>
+                  <Icon name={lang === 'ar' ? 'chevronLeft' : 'chevronRight'} size={16} />
+                </button>
+              </div>
             </div>
 
-            <button type="button" className="ma-menu-item is-primary" onClick={continueMission} aria-label={t('continueMission')}>
-              <span className="ma-menu-ico"><Icon name={currentMission ? 'continue' : 'play'} size={18} /></span>
-              <span className="ma-menu-label">
-                <b>{t('continueMission')}</b>
-                <span>{menuSub('continue')}</span>
-              </span>
-              <span className="ma-menu-key">↵</span>
-            </button>
+            {/* Quick Planet Selector Pills */}
+            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 ma-scroll">
+              {PEEK.map((p, i) => (
+                <button
+                  key={p.target}
+                  type="button"
+                  onClick={() => setFocus(i)}
+                  className={`ma-planet-pill ${focus === i ? 'is-active' : ''}`}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ background: accentForTarget(p.target) }} />
+                  <span>{lang === 'ar' ? p.labelAr : p.label}</span>
+                </button>
+              ))}
+            </div>
 
-            <div className="ma-menu-divider" />
-
-            {([
-              { id: 'new', icon: 'plus' as IconName, key: 'newMission' as const, onClick: () => setScreen('missionSelect') },
-              { id: 'select', icon: 'missions' as IconName, key: 'missionSelect' as const, onClick: () => setScreen('missionSelect') },
-              { id: 'research', icon: 'tech' as IconName, key: 'research' as const, onClick: () => setScreen('techTree') },
-              { id: 'hangar', icon: 'hangar' as IconName, key: 'hangar' as const, onClick: () => openHangar('hangar') },
-              { id: 'settings', icon: 'settings' as IconName, key: 'settings' as const, onClick: () => openHangar('system') },
-            ]).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="ma-menu-item"
-                onClick={item.onClick}
-                aria-label={t(item.key)}
-              >
-                <span className="ma-menu-ico"><Icon name={item.icon} size={18} /></span>
-                <span className="ma-menu-label">
-                  <b>{t(item.key)}</b>
-                  <span>{menuSub(item.id)}</span>
-                </span>
-              </button>
-            ))}
-          </nav>
-
-          {/* Quick access bar (Ref 5) — same real routes as the rail. */}
-          <div className="ma-quickbar w-full justify-between lg:w-auto" aria-label={lang === 'ar' ? 'وصول سريع' : 'Quick access'}>
-            <button type="button" className="ma-quickbtn" onClick={() => openHangar('profile')} aria-label={t('profile')} title={t('profile')}>
-              <Icon name="user" size={17} />
-            </button>
-            <button type="button" className="ma-quickbtn" onClick={() => openHangar('hangar')} aria-label={t('hangar')} title={t('hangar')}>
-              <Icon name="hangar" size={17} />
-            </button>
-            <button type="button" className="ma-quickbtn" onClick={() => setScreen('techTree')} aria-label={t('research')} title={t('research')}>
-              <Icon name="tech" size={17} />
-            </button>
-            <button type="button" className="ma-quickbtn" onClick={() => openHangar('system')} aria-label={t('settings')} title={t('settings')}>
-              <Icon name="settings" size={17} />
-            </button>
-            <span className="ma-quick-sep" aria-hidden />
-            <button
-              type="button"
-              className={`ma-quickbtn ${settings.sound ? 'is-on' : ''}`}
-              onClick={() => setSetting('sound', !settings.sound)}
-              aria-label={t('sound')}
-              aria-pressed={settings.sound}
-              title={t('sound')}
-            >
-              <Icon name={settings.sound ? 'volume' : 'mute'} size={17} />
-            </button>
-            <button
-              type="button"
-              className="ma-quickbtn"
-              onClick={() => setSetting('lang', lang === 'ar' ? 'en' : 'ar')}
-              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
-              title={lang === 'ar' ? 'English' : 'العربية'}
-            >
-              <span className="ma-num text-[10px] font-semibold">{lang === 'ar' ? 'EN' : 'ع'}</span>
-            </button>
+            {/* Target Telemetry Breakdown */}
+            {peekMission && (
+              <div className="mt-4 pt-3.5 border-t border-[rgba(255,255,255,0.08)] flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-[var(--ma-muted)]">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span>Δv: <b className="text-[var(--ma-text)] text-[12px]">{fmt(peekMission.requiredDvMps)}</b> m/s</span>
+                  <span>{peekMission.durationDays} {t('days')}</span>
+                  <span className="flex items-center gap-1">
+                    {Array.from({ length: 5 }, (_, idx) => (
+                      <Icon key={idx} name="star" size={11} className={idx < peekMission.difficultyStars ? 'text-[var(--ma-warn)] drop-shadow-[0_0_4px_var(--ma-warn)]' : 'text-[var(--ma-line)]'} />
+                    ))}
+                  </span>
+                </div>
+                <button type="button" className="ma-pill ma-pill-ghost ma-pill-sm ms-auto" onClick={openFeatured}>
+                  <Icon name={peekUnlocked ? 'arrowRight' : 'lock'} size={14} />
+                  <span>{peekUnlocked ? (lang === 'ar' ? 'انطلاق إلى المهمة' : 'Enter Mission') : t('locked')}</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-[color-mix(in_srgb,var(--ma-line)_80%,transparent)] bg-[rgba(6,12,26,0.42)] px-3 py-2 lg:w-auto lg:min-w-[300px]">
+          {/* THE 4 OPERATIONS WINGS (Rich Interactive Sci-Fi Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Wing 1: Mission Select */}
+            <div
+              className="ma-action-module"
+              role="button"
+              tabIndex={0}
+              onClick={() => setScreen('missionSelect')}
+              onKeyDown={(e) => e.key === 'Enter' && setScreen('missionSelect')}
+            >
+              <div className="ma-action-ico"><Icon name="missions" size={24} /></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <b className="text-[13px] text-[var(--ma-text)] uppercase tracking-wider">{t('missionSelect')}</b>
+                  <span className="text-[9px] font-mono text-[var(--ma-accent)]">{completedCount}/{MISSIONS.length}</span>
+                </div>
+                <p className="text-[11px] text-[var(--ma-muted)] mt-0.5 truncate">{lang === 'ar' ? 'الوجهات والمدارات والخطط' : 'Flight plans & targets'}</p>
+              </div>
+            </div>
+
+            {/* Wing 2: Spacecraft Bay */}
+            <div
+              className="ma-action-module"
+              role="button"
+              tabIndex={0}
+              onClick={() => setScreen('builder')}
+              onKeyDown={(e) => e.key === 'Enter' && setScreen('builder')}
+            >
+              <div className="ma-action-ico"><Icon name="hangar" size={24} /></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <b className="text-[13px] text-[var(--ma-text)] uppercase tracking-wider">{t('builder')}</b>
+                  <span className="text-[9px] font-mono text-[var(--ma-gold-hi)]">7×5 BAY</span>
+                </div>
+                <p className="text-[11px] text-[var(--ma-muted)] mt-0.5 truncate">{lang === 'ar' ? 'تجميع وتجهيز الحمولات' : 'Spacecraft payload design'}</p>
+              </div>
+            </div>
+
+            {/* Wing 3: Rocket Launchers */}
+            <div
+              className="ma-action-module"
+              role="button"
+              tabIndex={0}
+              onClick={() => setScreen('launcher')}
+              onKeyDown={(e) => e.key === 'Enter' && setScreen('launcher')}
+            >
+              <div className="ma-action-ico"><Icon name="play" size={24} /></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <b className="text-[13px] text-[var(--ma-text)] uppercase tracking-wider">{t('launcher')}</b>
+                  <span className="text-[9px] font-mono text-[var(--ma-good)]">FLEET</span>
+                </div>
+                <p className="text-[11px] text-[var(--ma-muted)] mt-0.5 truncate">{lang === 'ar' ? 'صواريخ الإطلاق وقوة الدفع' : 'Launch vehicles & thrust'}</p>
+              </div>
+            </div>
+
+            {/* Wing 4: Tech Tree */}
+            <div
+              className="ma-action-module"
+              role="button"
+              tabIndex={0}
+              onClick={() => setScreen('techTree')}
+              onKeyDown={(e) => e.key === 'Enter' && setScreen('techTree')}
+            >
+              <div className="ma-action-ico"><Icon name="tech" size={24} /></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <b className="text-[13px] text-[var(--ma-text)] uppercase tracking-wider">{t('research')}</b>
+                  <span className="text-[9px] font-mono text-[var(--ma-accent)]">{progress.unlockedTech.length} UNLOCKED</span>
+                </div>
+                <p className="text-[11px] text-[var(--ma-muted)] mt-0.5 truncate">{lang === 'ar' ? 'شجرة التقنية والترقيات' : 'R&D tech progression'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* COMMANDER STATUS & READINESS DIAL BAR */}
+          <div className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--ma-accent)_20%,var(--ma-line))] bg-[rgba(6,12,26,0.65)] px-4 py-3 backdrop-blur-md">
             <ReadinessDial value={xpPct} label={lang === 'ar' ? 'جاهزية القيادة' : 'Command readiness'} />
-            <span className="flex flex-col items-end gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--ma-muted)]">
-              <span className="ma-num">{progress.xp} {t('xp')}</span>
-              <span>{lang === 'ar' ? 'حتى المستوى التالي' : 'to next level'}</span>
-            </span>
+            <div className="flex items-center gap-3">
+              <button type="button" className="ma-quickbtn" onClick={() => openHangar('profile')} aria-label={t('profile')} title={t('profile')}>
+                <Icon name="user" size={17} />
+              </button>
+              <button type="button" className="ma-quickbtn" onClick={() => openHangar('system')} aria-label={t('settings')} title={t('settings')}>
+                <Icon name="settings" size={17} />
+              </button>
+            </div>
           </div>
-        </aside>
-      </div>
 
-      {/* Mobile destination switcher (the desktop arrows live in the card). */}
-      <div className="relative z-10 flex items-center justify-center gap-0.5 pb-4 sm:hidden">
-        {PEEK.map((p, i) => (
-          <button
-            key={p.target}
-            type="button"
-            onClick={() => setFocus(i)}
-            aria-label={lang === 'ar' ? p.labelAr : p.label}
-            aria-pressed={focus === i}
-            className="ma-dotbtn"
-          >
-            <span
-              className="ma-dot"
-              style={{
-                width: focus === i ? 26 : 8,
-                background: focus === i ? accentForTarget(p.target) : 'var(--ma-line)',
-                opacity: focus === i ? 1 : 0.7,
-              }}
-            />
-          </button>
-        ))}
+          {/* Utility links: design reference and sandbox */}
+          <div className="flex w-full items-center gap-5 text-[10px] uppercase tracking-[0.18em] text-[var(--ma-muted)]">
+            <button
+              type="button"
+              className="ma-tap inline-flex items-center transition-colors hover:text-[var(--ma-accent)]"
+              onClick={() => setScreen('styleGuide')}
+            >
+              {t('styleGuide')}
+            </button>
+            <button
+              type="button"
+              className="ma-tap inline-flex items-center transition-colors hover:text-[var(--ma-accent)]"
+              onClick={() => setScreen('playground')}
+            >
+              Playground
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );

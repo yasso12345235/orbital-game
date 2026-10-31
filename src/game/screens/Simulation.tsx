@@ -106,12 +106,16 @@ function LaunchPhase() {
     }
   }, [progress, soundOn]);
 
+  const launchVelocityMps = Math.round(progress * 7850);
+  const launchAltitudeKm = (progress * (mission?.altitudeKm ? Math.min(mission.altitudeKm, 180) : 160)).toFixed(1);
+  const launchGs = (1 + progress * 2.8).toFixed(1);
+
   return (
-    <div className="relative min-h-[70vh] rounded-2xl overflow-hidden bg-[#050B1F]">
+    <div className={`relative min-h-[75vh] rounded-3xl overflow-hidden bg-[#050B1F] border border-[rgba(61,224,255,0.2)] shadow-[0_0_50px_rgba(0,0,0,0.8)] ${countdown <= 3 && countdown > 0 ? 'ma-launch-strobe' : ''}`}>
       <Suspense
         fallback={
           <div className="absolute inset-0 grid place-items-center text-[11px] uppercase tracking-widest text-white/50">
-            Loading launch…
+            Loading launch sequence…
           </div>
         }
       >
@@ -122,38 +126,108 @@ function LaunchPhase() {
           onCallout={(c) => setCallout(c)}
         />
       </Suspense>
-      {/* T-10 overlay */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center">
-          <div className="ma-kpi-num ma-num text-6xl" style={{ color: '#fff', textShadow: '0 0 30px rgba(255,255,255,0.6)' }}>
+
+      {/* Hologram scanline layer */}
+      <div className="ma-hologram-scan" />
+
+      {/* Flight Telemetry HUD Overlay */}
+      <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between">
+        {/* Top Bar: Mission Info + Skip */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 bg-[rgba(5,10,24,0.75)] border border-[rgba(255,255,255,0.1)] px-4 py-2 rounded-xl backdrop-blur-md shadow-lg">
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--ma-good)] animate-ping" />
+            <div className="text-[11px] ma-num font-mono">
+              <span className="text-[var(--ma-gold)] font-bold">{launcher?.name.toUpperCase()}</span>
+              <span className="text-white/40 mx-2">/</span>
+              <span className="text-[var(--ma-accent)]">{mission?.target.toUpperCase()} INSERTION</span>
+            </div>
+          </div>
+
+          <div className="pointer-events-auto">
+            <button type="button" className="ma-tap px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.18)] bg-[rgba(10,18,36,0.8)] hover:bg-[rgba(233,195,124,0.15)] hover:border-[var(--ma-gold)] text-xs font-bold text-white uppercase tracking-wider backdrop-blur-md transition-all shadow-md" onClick={skipLaunch}>
+              {lang === 'ar' ? 'تخطي التسلسل »' : 'Skip sequence »'}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Flight Telemetry Stream (Left HUD) */}
+        {countdown === 0 && (
+          <div className="self-start bg-[rgba(5,11,26,0.85)] border border-[rgba(61,224,255,0.25)] p-4 rounded-2xl backdrop-blur-md shadow-2xl max-w-[260px] space-y-2.5 animate-in fade-in slide-in-from-left-4 duration-500">
+            <div className="flex items-center justify-between text-[9px] font-mono text-[var(--ma-accent)] uppercase tracking-widest border-b border-white/10 pb-1">
+              <span>{lang === 'ar' ? 'بيانات القياس عن بُعد' : 'FLIGHT TELEMETRY'}</span>
+              <span className="animate-pulse">● REC</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px] ma-num font-mono">
+              <div>
+                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'السرعة' : 'VELOCITY'}</span>
+                <span className="text-base font-bold text-white">{launchVelocityMps} <small className="text-[9px] text-[var(--ma-muted)]">m/s</small></span>
+              </div>
+              <div>
+                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الارتفاع' : 'ALTITUDE'}</span>
+                <span className="text-base font-bold text-[var(--ma-accent)]">{launchAltitudeKm} <small className="text-[9px] text-[var(--ma-muted)]">km</small></span>
+              </div>
+              <div>
+                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'قوى الجاذبية' : 'ACCELERATION'}</span>
+                <span className="text-base font-bold text-[var(--ma-gold)]">{launchGs} G</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الضغط الديناميكي' : 'DYN PRESSURE'}</span>
+                <span className="text-xs font-bold text-[var(--ma-good)]">{progress > 0.35 && progress < 0.65 ? 'MAX-Q' : 'NOMINAL'}</span>
+              </div>
+            </div>
+            {/* Live Audio Carrier Waveform */}
+            <div className="pt-1 border-t border-white/5">
+              <div className="flex items-center justify-between text-[8px] font-mono text-[var(--ma-muted)] mb-1">
+                <span>ACOUSTIC SPECTRUM</span>
+                <span className="text-[var(--ma-good)]">CARRIER LOCK</span>
+              </div>
+              <svg viewBox="0 0 100 12" className="w-full h-3 stroke-[var(--ma-accent)] fill-none">
+                <path d="M0,6 Q10,0 20,6 T40,6 T60,6 T80,6 T100,6" strokeWidth="1.5" className="ma-scope-wave" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Center: Massive Countdown Clock */}
+        <div className="text-center self-center my-auto">
+          <div className={`ma-kpi-num ma-num font-black text-7xl md:text-8xl tracking-tight transition-all duration-300 ${countdown <= 3 && countdown > 0 ? 'text-[var(--ma-bad)] scale-110 drop-shadow-[0_0_40px_rgba(255,84,112,0.8)]' : 'text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.7)]'}`}>
             {countdown > 0 ? `${t('tMinus')}${countdown}` : `T+${Math.round(progress * 26)}s`}
           </div>
-          <div className="ma-hudtag mt-1" dir="ltr">{callout.text}</div>
-          <div className="text-[11px] text-white/80 font-ar">{lang === 'ar' ? callout.ar : ''}</div>
+          <div className="inline-block mt-3 px-4 py-1.5 rounded-full border border-white/20 bg-[rgba(5,10,24,0.75)] backdrop-blur-md shadow-xl">
+            <span className="font-hud text-xs md:text-sm font-bold tracking-[0.25em] text-[var(--ma-gold)] uppercase" dir="ltr">
+              {callout.text}
+            </span>
+          </div>
+          {lang === 'ar' && callout.ar && (
+            <div className="text-sm font-bold text-white/90 font-ar mt-1 drop-shadow-md">
+              {callout.ar}
+            </div>
+          )}
         </div>
 
-        {/* GO/NO-GO checklist */}
-        <div className="absolute bottom-6 left-6 ma-panel p-3 max-w-[240px]">
-          <p className="text-[10px] uppercase tracking-widest text-[var(--ma-muted)] mb-2">{t('goNogo')}</p>
-          <ul className="space-y-1">
-            {launch.goNoGo.map((g) => (
-              <li key={g.name} className="flex items-center justify-between text-[11px] ma-num" dir="ltr">
-                <span>{g.name}</span>
-                <span style={{ color: g.go ? 'var(--ma-good)' : 'var(--ma-bad)' }}>{g.go ? 'GO' : 'NO-GO'}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Bottom Bar: GO/NO-GO Checklist & Trajectory Info */}
+        <div className="flex items-end justify-between gap-4">
+          <div className="bg-[rgba(5,11,26,0.85)] border border-[rgba(255,255,255,0.12)] p-3.5 rounded-2xl backdrop-blur-md shadow-2xl min-w-[220px]">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-[var(--ma-muted)] font-mono border-b border-white/10 pb-1.5 mb-2">
+              <span>{t('goNogo')}</span>
+              <span className="text-[var(--ma-good)] font-bold">ALL GO</span>
+            </div>
+            <ul className="space-y-1.5">
+              {launch.goNoGo.map((g) => (
+                <li key={g.name} className="flex items-center justify-between text-xs ma-num font-mono" dir="ltr">
+                  <span className="text-white/80">{g.name}</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${g.go ? 'bg-[rgba(47,224,90,0.15)] text-[var(--ma-good)] border border-[rgba(47,224,90,0.3)]' : 'bg-[rgba(255,84,112,0.15)] text-[var(--ma-bad)] border border-[rgba(255,84,112,0.3)]'}`}>
+                    {g.go ? 'GO' : 'NO-GO'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        <div className="absolute bottom-6 right-6 text-right text-white/90 text-[11px] ma-num">
-          <p>{launcher?.name} → {mission?.target.toUpperCase()}</p>
-          <p>{lang === 'ar' ? 'T−10 ← الإطلاق ← المدار' : 'T−10 → liftoff → orbit'}</p>
-        </div>
-
-        <div className="absolute top-6 right-6 pointer-events-auto">
-          <button type="button" className="ma-btn-ghost" onClick={skipLaunch}>
-            {lang === 'ar' ? 'تخطي التسلسل »' : 'Skip sequence »'}
-          </button>
+          <div className="text-right text-white/90 text-xs ma-num font-mono bg-[rgba(5,11,26,0.85)] border border-[rgba(255,255,255,0.12)] px-4 py-2.5 rounded-2xl backdrop-blur-md shadow-2xl">
+            <p className="font-bold text-[var(--ma-accent)]">{launcher?.name} → {mission?.target.toUpperCase()}</p>
+            <p className="text-[10px] text-[var(--ma-muted)] mt-0.5">{lang === 'ar' ? 'T−10 ← إشعال المحركات ← المدار' : 'T−10 → ignition → orbital insertion'}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -226,78 +300,117 @@ function OpsPhase() {
   const fmtRate = (mbps: number) => (mbps >= 1000 ? `${(mbps / 1000).toFixed(2)} Gbps` : mbps >= 1 ? `${mbps.toFixed(1)} Mbps` : `${Math.max(0, mbps * 1000).toFixed(0)} kbps`);
 
   return (
-    <div className={`grid grid-cols-1 xl:grid-cols-[290px_1fr_290px] gap-4 ${isCritical ? 'ma-critical-flash' : ''}`}>
-      {/* LEFT: power + event log */}
-      <div className="flex flex-col gap-4">
-        <HudFrame tag="POWER" tagAr="الطاقة" tone={powerTone}>
-          <div className="flex items-center justify-between gap-2">
-            <RadialGauge
-              value={batteryPct}
-              ar="البطارية"
-              en="Battery"
-              size={104}
-              lowAt={20}
-              warnAt={40}
-              note={`${sim.batteryChargeWh.toFixed(0)} / ${sim.batteryCapacityWh.toFixed(0)} Wh`}
-            />
-            <div className="min-w-0 flex-1 space-y-1.5 text-[12px] ma-num">
-              <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{t('generation')}</span><span>{fmt(validate?.budget.generationW ?? 0)} W</span></div>
-              <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{t('load')}</span><span>{fmt(validate?.budget.loadW ?? 0)} W{sim.safeMode ? ' ×0.6' : ''}</span></div>
-              <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{lang === 'ar' ? 'الهامش' : 'Margin'}</span><span style={{ color: (validate?.budget.powerMarginW ?? 0) < 0 ? 'var(--ma-bad)' : 'var(--ma-good)' }}>{fmt(validate?.budget.powerMarginW ?? 0)} W</span></div>
+    <div className="flex flex-col gap-4">
+      {/* Flight Operations Director Bar */}
+      <div className="ma-flight-director-bar flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--ma-accent)] bg-[rgba(61,224,255,0.12)] text-base shadow-[0_0_15px_rgba(61,224,255,0.3)]">
+            🛰️
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="ma-epic-kicker text-[8px] tracking-[0.25em]">
+                {lang === 'ar' ? 'مركز قيادة العمليات المدارية' : 'FLIGHT OPERATIONS DESK · ACTIVE MISSION'}
+              </span>
+              <span className="rounded-full bg-[rgba(47,224,90,0.15)] px-2 py-0.5 text-[9px] font-bold text-[var(--ma-good)] border border-[rgba(47,224,90,0.3)] animate-pulse">
+                DSN CARRIER LOCKED
+              </span>
             </div>
+            <h2 className="font-hud text-base font-bold tracking-wider text-white">
+              {lang === 'ar' ? mission.nameAr ?? mission.name : mission.name}
+            </h2>
           </div>
-          <div className="mt-3">
-            <Sparkline data={series.battery} label={t('battery')} unit="%" min={0} max={100} tone={batteryPct <= 20 ? 'bad' : batteryPct <= 40 ? 'warn' : 'accent'} />
-          </div>
-          {sim.safeMode && (
-            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--ma-warn)]">
-              <Icon name="warning" size={13} className="mt-[1px]" />
-              <span>{t('safeMode')} — {lang === 'ar' ? 'علم أقل، خطر أقل.' : 'less science, less risk.'}</span>
-            </p>
-          )}
-        </HudFrame>
+        </div>
 
-        <HudFrame tag="EVENT LOG" tagAr="سجل الأحداث" className="flex-1 min-h-[260px] flex flex-col">
-          <div ref={logRef} className="flex-1 overflow-auto ma-scroll space-y-1.5 max-h-[320px] pr-1">
-            {sim.eventLog.map((e, i) => <LogRow key={i} e={e} />)}
+        {/* Live Radio Telemetry Carrier Waveform */}
+        <div className="flex items-center gap-4 bg-[rgba(4,9,22,0.6)] px-3 py-1.5 rounded-xl border border-white/10 text-[10px] ma-num font-mono">
+          <div className="text-right">
+            <span className="text-[8px] text-[var(--ma-muted)] block">DSN X-BAND</span>
+            <span className="text-[var(--ma-accent)] font-bold">8.425 GHz</span>
           </div>
-        </HudFrame>
+          <svg viewBox="0 0 70 12" className="w-16 h-3 stroke-[var(--ma-accent)] fill-none">
+            <path d="M0,6 Q8,0 17,6 T35,6 T52,6 T70,6" strokeWidth="1.5" className="ma-scope-wave" />
+          </svg>
+          <div className="text-left">
+            <span className="text-[8px] text-[var(--ma-muted)] block">DATA LINK</span>
+            <span className="text-[var(--ma-good)] font-bold">{link ? fmtRate(link.rateMbps) : 'STABLE'}</span>
+          </div>
+        </div>
       </div>
 
-      {/* CENTER: globe + clock */}
-      <div className="flex flex-col gap-4 min-w-0">
-        <HudFrame tag="ORBIT VIEW" tagAr="عرض المدار" tight className="flex-1 flex flex-col" tone={isCritical ? 'bad' : undefined}>
-          <div className="relative flex-1 min-h-[360px] rounded-xl overflow-hidden bg-[#03071a]">
-            <Suspense
-              fallback={
-                <div className="ma-loading">
-                  <span className="ma-loading-ring" aria-hidden />
-                  <span>{lang === 'ar' ? 'جارٍ تحميل المدار' : 'Loading orbit'}</span>
-                </div>
-              }
-            >
-              <LazyOrbitOpsView />
-            </Suspense>
-            <div className="absolute top-3 start-3"><PanelTag ar="مدار حي" en={mission.target.toUpperCase()} /></div>
-            <OrbitRadar frac={timelineFrac} events={sim.eventLog} target={mission.target} label={t('orbitMap')} day={sim.elapsedDays} duration={sim.durationDays} />
-            {isCritical && (
-              <div className="absolute bottom-3 start-3 flex items-center gap-2 rounded-full border border-[var(--ma-bad)] bg-[rgba(20,4,10,0.82)] px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-[var(--ma-bad)] backdrop-blur-sm">
-                <Icon name="warning" size={13} />
-                {lang === 'ar' ? 'تحذير حرج — راجع السجل' : 'Critical alert — check log'}
+      <div className={`grid grid-cols-1 xl:grid-cols-[290px_1fr_290px] gap-4 ${isCritical ? 'ma-critical-flash' : ''}`}>
+        {/* LEFT: power + event log */}
+        <div className="flex flex-col gap-4">
+          <HudFrame tag="POWER SUBSYSTEM" tagAr="نظام الطاقة" tone={powerTone}>
+            <div className="flex items-center justify-between gap-2">
+              <RadialGauge
+                value={batteryPct}
+                ar="البطارية"
+                en="Battery"
+                size={104}
+                lowAt={20}
+                warnAt={40}
+                note={`${sim.batteryChargeWh.toFixed(0)} / ${sim.batteryCapacityWh.toFixed(0)} Wh`}
+              />
+              <div className="min-w-0 flex-1 space-y-1.5 text-[12px] ma-num font-mono">
+                <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{t('generation')}</span><span className="font-bold text-white">{fmt(validate?.budget.generationW ?? 0)} W</span></div>
+                <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{t('load')}</span><span className="font-bold text-white">{fmt(validate?.budget.loadW ?? 0)} W{sim.safeMode ? ' ×0.6' : ''}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-[var(--ma-muted)]">{lang === 'ar' ? 'الهامش' : 'Margin'}</span><span className="font-bold" style={{ color: (validate?.budget.powerMarginW ?? 0) < 0 ? 'var(--ma-bad)' : 'var(--ma-good)' }}>{fmt(validate?.budget.powerMarginW ?? 0)} W</span></div>
               </div>
+            </div>
+            <div className="mt-3">
+              <Sparkline data={series.battery} label={t('battery')} unit="%" min={0} max={100} tone={batteryPct <= 20 ? 'bad' : batteryPct <= 40 ? 'warn' : 'accent'} />
+            </div>
+            {sim.safeMode && (
+              <p className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--ma-warn)] bg-[rgba(255,184,31,0.1)] p-2 rounded-lg border border-[rgba(255,184,31,0.2)]">
+                <Icon name="warning" size={13} className="mt-[1px]" />
+                <span>{t('safeMode')} — {lang === 'ar' ? 'وضع الأمان مفعّل: استهلاك علم أقل، خطر أقل.' : 'Safe mode: less science, reduced risk.'}</span>
+              </p>
             )}
-          </div>
+          </HudFrame>
 
-          {/* Real telemetry strip (mono), all values bound to mission state. */}
-          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg border border-[color-mix(in_srgb,var(--ma-line)_82%,transparent)] bg-[rgba(4,9,20,0.55)] px-3 py-2 sm:grid-cols-3 lg:grid-cols-6" aria-label={t('telemetry')}>
-            <Telemetry label="ALT" ar="الارتفاع" value={`${fmt(altitudeKm)} km`} />
-            <Telemetry label="INC" ar="الميل" value={`${inclination.toFixed(1)}°`} />
-            <Telemetry label="RANGE" ar="المدى" value={link ? fmtRangeKm(link.distanceKm) : '—'} />
-            <Telemetry label="DELAY" ar="التأخير" value={link ? fmtDelayS(link.lightDelayS) : '—'} />
-            <Telemetry label="RATE" ar="المعدل" value={link ? fmtRate(link.rateMbps) : '—'} />
-            <Telemetry label="DAY" ar="اليوم" value={`D${sim.elapsedDays.toFixed(1)} / ${sim.durationDays}`} />
-          </div>
-        </HudFrame>
+          <HudFrame tag="MISSION EVENT LOG" tagAr="سجل وقائع المهمة" className="flex-1 min-h-[260px] flex flex-col">
+            <div ref={logRef} className="flex-1 overflow-auto ma-scroll space-y-2 max-h-[320px] pr-1">
+              {sim.eventLog.map((e, i) => <LogRow key={i} e={e} />)}
+            </div>
+          </HudFrame>
+        </div>
+
+        {/* CENTER: globe + clock */}
+        <div className="flex flex-col gap-4 min-w-0">
+          <HudFrame tag="ORBIT FLIGHT VIEW" tagAr="عرض المدار والملاحة" tight className="flex-1 flex flex-col ma-laser-glow" tone={isCritical ? 'bad' : undefined}>
+            <div className="relative flex-1 min-h-[360px] rounded-2xl overflow-hidden bg-[#03071a] border border-[rgba(61,224,255,0.2)] shadow-[0_0_40px_rgba(0,0,0,0.7)]">
+              <Suspense
+                fallback={
+                  <div className="ma-loading">
+                    <span className="ma-loading-ring" aria-hidden />
+                    <span>{lang === 'ar' ? 'جارٍ تحميل المدار' : 'Loading orbit'}</span>
+                  </div>
+                }
+              >
+                <LazyOrbitOpsView />
+              </Suspense>
+              <div className="ma-hologram-scan" />
+              <div className="absolute top-3 start-3"><PanelTag ar="مدار نشط" en={mission.target.toUpperCase()} /></div>
+              <OrbitRadar frac={timelineFrac} events={sim.eventLog} target={mission.target} label={t('orbitMap')} day={sim.elapsedDays} duration={sim.durationDays} />
+              {isCritical && (
+                <div className="absolute bottom-3 start-3 flex items-center gap-2 rounded-full border border-[var(--ma-bad)] bg-[rgba(20,4,10,0.85)] px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-[var(--ma-bad)] backdrop-blur-md shadow-lg animate-pulse">
+                  <Icon name="warning" size={13} />
+                  {lang === 'ar' ? 'تحذير حرج — راجع السجل' : 'Critical alert — check log'}
+                </div>
+              )}
+            </div>
+
+            {/* Real telemetry strip (mono), all values bound to mission state. */}
+            <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl border border-[rgba(61,224,255,0.25)] bg-[rgba(4,9,24,0.75)] px-3.5 py-2.5 sm:grid-cols-3 lg:grid-cols-6 backdrop-blur-md shadow-lg" aria-label={t('telemetry')}>
+              <Telemetry label="ALT" ar="الارتفاع" value={`${fmt(altitudeKm)} km`} />
+              <Telemetry label="INC" ar="الميل" value={`${inclination.toFixed(1)}°`} />
+              <Telemetry label="RANGE" ar="المدى" value={link ? fmtRangeKm(link.distanceKm) : '—'} />
+              <Telemetry label="DELAY" ar="التأخير" value={link ? fmtDelayS(link.lightDelayS) : '—'} />
+              <Telemetry label="RATE" ar="المعدل" value={link ? fmtRate(link.rateMbps) : '—'} />
+              <Telemetry label="DAY" ar="اليوم" value={`D${sim.elapsedDays.toFixed(1)} / ${sim.durationDays}`} />
+            </div>
+          </HudFrame>
 
         {/* Mission clock + timeline */}
         <HudFrame tag="MISSION CLOCK" tagAr="ساعة المهمة" tight>
@@ -413,6 +526,7 @@ function OpsPhase() {
       <div className="xl:col-span-3">
         <MissionActions />
       </div>
+    </div>
     </div>
   );
 }

@@ -69,8 +69,17 @@ export default function MissionApp() {
   const hasSurface = useMission((s) => !!s.surface);
   const descentFlying = useMission((s) => s.descent?.phase === 'flying');
   const settings = useMission((s) => s.settings);
+  const setSetting = useMission((s) => s.setSetting);
   const loadWarning = useMission((s) => s.loadWarning);
   const dismissLoadWarning = useMission((s) => s.dismissLoadWarning);
+
+  const [utcTime, setUtcTime] = useState(() => new Date().toISOString().substring(11, 19));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUtcTime(new Date().toISOString().substring(11, 19));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useInputLayer();
 
@@ -158,12 +167,13 @@ export default function MissionApp() {
       data-theme={theme}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
-      {/* Ambient deep-space layer: parallax stars, aurora blooms, film grain. */}
+      {/* Ambient deep-space layer: parallax stars, aurora blooms, film grain, radar sweep. */}
       <div className="ma-ambient" aria-hidden>
         <i className="ma-amb-stars" />
         <i className="ma-amb-stars-2" />
         <i className="ma-amb-aurora ma-amb-aurora-a" />
         <i className="ma-amb-aurora ma-amb-aurora-b" />
+        <i className="ma-amb-radar" />
         <i className="ma-amb-grain" />
       </div>
       {/* Top bar — floating glass chrome */}
@@ -227,13 +237,51 @@ export default function MissionApp() {
           )}
 
           <div className="ma-topbar-tools">
+            <div className="ma-topbar-telemetry hidden xl:flex items-center gap-2.5 px-3 py-1 rounded-full border border-[color-mix(in_srgb,var(--ma-accent)_24%,var(--ma-line))] bg-[rgba(6,12,26,0.65)] text-[10px] ma-num text-[var(--ma-muted)] shadow-inner">
+              <span className="flex items-center gap-1.5 text-[var(--ma-good)]">
+                <span className="inline-block w-2 h-2 rounded-full bg-[var(--ma-good)] shadow-[0_0_8px_var(--ma-good)] animate-pulse" />
+                <span className="font-semibold tracking-wider text-[9px] uppercase">{lang === 'ar' ? 'الاتصال مستقر' : 'DSN LOCKED'}</span>
+              </span>
+              <span className="opacity-30">|</span>
+              <span className="tracking-widest text-[var(--ma-text)]">UTC {utcTime}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className={`ma-topbar-quickbtn ${settings.sound ? 'is-active' : ''}`}
+                onClick={() => setSetting('sound', !settings.sound)}
+                aria-label={t('sound')}
+                title={settings.sound ? (lang === 'ar' ? 'كتم الصوت' : 'Mute Sound') : (lang === 'ar' ? 'تشغيل الصوت' : 'Enable Sound')}
+              >
+                <Icon name={settings.sound ? 'volume' : 'mute'} size={15} />
+              </button>
+              {settings.sound && !reduced && (
+                <div className="ma-equalizer hidden sm:flex" aria-hidden>
+                  <i /><i /><i /><i /><i />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="ma-topbar-quickbtn"
+              onClick={() => setSetting('lang', lang === 'ar' ? 'en' : 'ar')}
+              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+              title={lang === 'ar' ? 'English' : 'العربية'}
+            >
+              <span className="ma-num text-[11px] font-bold">{lang === 'ar' ? 'EN' : 'ع'}</span>
+            </button>
+
             {screen === 'home' && (
               <span className="ma-status hidden md:inline-flex" data-tone="accent">
-                <i /> MISSION ARCHITECT PROGRAM · v1.6
+                <i /> MISSION ARCHITECT PROGRAM · v1.7
               </span>
             )}
             <AIChip />
-            <ShortcutSheet />
+            <div className="ma-tool-keys">
+              <ShortcutSheet />
+            </div>
           </div>
         </div>
       </header>
@@ -265,6 +313,49 @@ export default function MissionApp() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Live Astrodynamics Telemetry Stream Marquee */}
+      <div className="ma-telemetry-ticker my-3 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--ma-accent)_20%,var(--ma-line))] bg-[rgba(4,8,18,0.72)] backdrop-blur-md py-1.5 text-[9px] font-mono tracking-[0.24em] text-[var(--ma-muted)] uppercase" aria-hidden>
+        <div className="ma-ticker-track flex items-center gap-8 whitespace-nowrap">
+          <span className="flex items-center gap-2 text-[var(--ma-accent)] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ma-accent)] animate-ping" />
+            ORBITAL SPACE LAB // LIVE OPS
+          </span>
+          <span className="opacity-30">///</span>
+          <span>FLIGHT DIRECTOR: NOMINAL</span>
+          <span className="opacity-30">///</span>
+          <span className="text-[var(--ma-gold-hi)] font-semibold">ORBIT DYNAMICS: 2-BODY KEPLERIAN + J2 PERTURBATION</span>
+          <span className="opacity-30">///</span>
+          <span>COMM LINK: S-BAND 2.45 GHz CARRIER LOCK</span>
+          <span className="opacity-30">///</span>
+          <span>DELTA-V BUDGET: OPTIMIZED</span>
+          <span className="opacity-30">///</span>
+          <span className="text-[var(--ma-good)] font-semibold">SYSTEM TELEMETRY: GREEN 100%</span>
+          <span className="opacity-30">///</span>
+          <span>ATTITUDE CONTROL: REACTION WHEELS ARMED</span>
+          <span className="opacity-30">///</span>
+          <span>SOLAR FLUX: 1361 W/M²</span>
+          <span className="opacity-30">///</span>
+          <span className="flex items-center gap-2 text-[var(--ma-accent)] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ma-accent)] animate-ping" />
+            ORBITAL SPACE LAB // LIVE OPS
+          </span>
+          <span className="opacity-30">///</span>
+          <span>FLIGHT DIRECTOR: NOMINAL</span>
+          <span className="opacity-30">///</span>
+          <span className="text-[var(--ma-gold-hi)] font-semibold">ORBIT DYNAMICS: 2-BODY KEPLERIAN + J2 PERTURBATION</span>
+          <span className="opacity-30">///</span>
+          <span>COMM LINK: S-BAND 2.45 GHz CARRIER LOCK</span>
+          <span className="opacity-30">///</span>
+          <span>DELTA-V BUDGET: OPTIMIZED</span>
+          <span className="opacity-30">///</span>
+          <span className="text-[var(--ma-good)] font-semibold">SYSTEM TELEMETRY: GREEN 100%</span>
+          <span className="opacity-30">///</span>
+          <span>ATTITUDE CONTROL: REACTION WHEELS ARMED</span>
+          <span className="opacity-30">///</span>
+          <span>SOLAR FLUX: 1361 W/M²</span>
+        </div>
+      </div>
 
       <AIHelper />
       <Toasts />

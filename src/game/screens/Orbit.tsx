@@ -72,8 +72,9 @@ export function OrbitScreen() {
         )}
       </div>
 
-      <HudFrame tag="LIVE ORBIT" tagAr="المدار الحي" className="min-h-[420px] flex flex-col">
+      <HudFrame tag="LIVE ORBIT" tagAr="المدار الحي" className="min-h-[420px] flex flex-col ma-laser-glow border border-[color-mix(in_srgb,var(--ma-accent)_35%,var(--ma-line))]">
         <div className="relative flex-1 rounded-xl overflow-hidden bg-[#03071a] min-h-[380px]">
+          <span className="ma-hologram-scan" aria-hidden />
           <Suspense
             fallback={
               <div className="grid h-full place-items-center text-xs text-[var(--ma-muted)]">Loading orbit…</div>
@@ -82,11 +83,14 @@ export function OrbitScreen() {
             <LazyOrbitDesignerView />
           </Suspense>
           <div className="absolute top-3 left-3"><PanelTag ar="مدار حي" en="LIVE ORBIT" /></div>
-          <div className="absolute bottom-3 left-3 right-3 flex gap-4 flex-wrap text-[11px] ma-num text-[var(--ma-muted)]">
-            <span>h = {altitude.toFixed(0)} km</span>
-            <span>i = {inclination.toFixed(0)}°</span>
-            <span>v = {readout.velocityKmS.toFixed(2)} km/s</span>
-            <span>T = {readout.periodMin.toFixed(1)} min</span>
+          <div className="absolute bottom-3 left-3 right-3 flex gap-3 flex-wrap text-[11px] ma-num text-[var(--ma-muted)] p-2.5 rounded-lg bg-[rgba(6,12,26,0.7)] backdrop-blur-md border border-[var(--ma-line)]">
+            <span className="font-mono"><b className="text-[var(--ma-accent)]">h</b> = <span className="text-[var(--ma-text)] font-bold">{altitude.toFixed(0)}</span> km</span>
+            <span className="opacity-30">|</span>
+            <span className="font-mono"><b className="text-[var(--ma-warn)]">i</b> = <span className="text-[var(--ma-text)] font-bold">{inclination.toFixed(0)}</span>°</span>
+            <span className="opacity-30">|</span>
+            <span className="font-mono"><b className="text-[var(--ma-good)]">v</b> = <span className="text-[var(--ma-text)] font-bold">{readout.velocityKmS.toFixed(2)}</span> km/s</span>
+            <span className="opacity-30">|</span>
+            <span className="font-mono"><b className="text-[var(--ma-gold-hi)]">T</b> = <span className="text-[var(--ma-text)] font-bold">{readout.periodMin.toFixed(1)}</span> min</span>
           </div>
         </div>
       </HudFrame>
