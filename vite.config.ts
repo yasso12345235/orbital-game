@@ -9,6 +9,9 @@ export default defineConfig({
     alias: {
       // Pure physics engine, deliberately UI-free.
       '@engine': path.resolve(__dirname, 'src/engine/index.ts'),
+      '@core': path.resolve(__dirname, 'src/core/index.ts'),
+      '@systems': path.resolve(__dirname, 'src/systems/index.ts'),
+      '@world': path.resolve(__dirname, 'src/world/index.ts'),
       '@': path.resolve(__dirname, 'src/game')
     }
   },

@@ -11,6 +11,7 @@ export interface LaunchCinematicProps {
   progress: number;
   launcherId: string;
   shake?: number;
+  steerX?: number;
   onCallout?: (c: LaunchCallout) => void;
 }
 
@@ -27,7 +28,7 @@ function NoWebGL() {
   );
 }
 
-export default function LaunchCinematic({ progress, launcherId, shake, onCallout }: LaunchCinematicProps) {
+export default function LaunchCinematic({ progress, launcherId, shake, steerX = 0, onCallout }: LaunchCinematicProps) {
   useAccentBridge();
   return (
     <div className="absolute inset-0" data-scene="launch-cinematic">
@@ -39,7 +40,7 @@ export default function LaunchCinematic({ progress, launcherId, shake, onCallout
         env={false}
         fallback={<NoWebGL />}
       >
-        <LaunchScene progress={progress} launcherId={launcherId} shake={shake} onCallout={onCallout} />
+        <LaunchScene progress={progress} launcherId={launcherId} shake={shake} steerX={steerX} onCallout={onCallout} />
       </SceneShell>
     </div>
   );

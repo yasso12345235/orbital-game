@@ -63,113 +63,186 @@ export function SpacecraftKit({ unfold = 1, rtg = 0, thrust = 0.4, spin = 0.2 }:
     }
   });
 
-  const metal = <meshStandardMaterial color="#C6CEDD" metalness={0.82} roughness={0.32} />;
-
   return (
     <group ref={group}>
-      {/* Bus + gold foil band */}
+      {/* Central Probe Bus - Aerospace Carbon-Alloy Chassis */}
       <mesh>
-        <boxGeometry args={[1.1, 0.68, 0.68]} />
-        {metal}
-      </mesh>
-      <mesh position={[0, 0.14, 0]}>
-        <boxGeometry args={[1.12, 0.18, 0.7]} />
-        <meshStandardMaterial color="#D4A94F" metalness={0.9} roughness={0.35} emissive="#3A2A08" emissiveIntensity={0.5} />
-      </mesh>
-      {/* Instrument stack */}
-      <mesh position={[0.34, -0.42, 0.12]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.3, 12]} />
-        <meshStandardMaterial color="#2A3147" metalness={0.4} roughness={0.6} />
+        <boxGeometry args={[1.2, 0.72, 0.72]} />
+        <meshStandardMaterial color="#D8DFEE" metalness={0.75} roughness={0.28} />
       </mesh>
 
-      {/* Solar wings — fold against the bus as unfold → 0 */}
-      <group ref={wingL} position={[-0.58, 0.05, 0]}>
-        <mesh position={[-0.85, 0, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[1.7, 0.025, 0.56]} />
-          <meshStandardMaterial color="#17326B" metalness={0.55} roughness={0.28} emissive="#0A1B44" emissiveIntensity={0.9} />
+      {/* Golden Kapton Multi-Layer Insulation (MLI) Thermal Blanket */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[1.22, 0.44, 0.74]} />
+        <meshStandardMaterial
+          color="#E5AA38"
+          metalness={0.92}
+          roughness={0.25}
+          emissive="#593A04"
+          emissiveIntensity={0.6}
+        />
+      </mesh>
+
+      {/* Front Optical Science Camera / Sensor Turret */}
+      <group position={[0, -0.15, 0.38]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.11, 0.13, 0.18, 18]} />
+          <meshStandardMaterial color="#1A202C" metalness={0.8} roughness={0.3} />
         </mesh>
-        <mesh position={[-0.04, 0, 0]}>
-          <cylinderGeometry args={[0.05, 0.05, 0.3, 10]} />
-          <meshStandardMaterial color="#8B93A6" metalness={0.9} roughness={0.3} />
-        </mesh>
-      </group>
-      <group ref={wingR} position={[0.58, 0.05, 0]}>
-        <mesh position={[0.85, 0, 0]}>
-          <boxGeometry args={[1.7, 0.025, 0.56]} />
-          <meshStandardMaterial color="#17326B" metalness={0.55} roughness={0.28} emissive="#0A1B44" emissiveIntensity={0.9} />
-        </mesh>
-        <mesh position={[0.04, 0, 0]}>
-          <cylinderGeometry args={[0.05, 0.05, 0.3, 10]} />
-          <meshStandardMaterial color="#8B93A6" metalness={0.9} roughness={0.3} />
+        {/* Optical Sensor Glass Lens with Antireflective Cyan Sheen */}
+        <mesh position={[0, 0, 0.1]} rotation={[Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.09, 18]} />
+          <meshStandardMaterial color="#3DE0FF" metalness={0.95} roughness={0.05} emissive="#124E66" emissiveIntensity={0.8} />
         </mesh>
       </group>
 
-      {/* High-gain dish */}
-      <group position={[0, 0.42, 0.26]}>
-        <mesh ref={dish} rotation={[-0.6, 0, 0]}>
-          <coneGeometry args={[0.34, 0.22, 24, 1, true]} />
-          <meshStandardMaterial color="#B9C2D8" metalness={0.85} roughness={0.25} side={DoubleSide} />
-        </mesh>
-        <mesh position={[0, 0.1, 0.05]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.26, 8]} />
-          <meshStandardMaterial color="#6B7488" metalness={0.8} roughness={0.35} />
-        </mesh>
-      </group>
-
-      {/* Star-tracker mast */}
-      <mesh position={[0.3, 0.52, -0.2]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.42, 8]} />
-        <meshStandardMaterial color="#8B93A6" metalness={0.8} roughness={0.35} />
-      </mesh>
-      <mesh position={[0.3, 0.74, -0.2]}>
-        <boxGeometry args={[0.1, 0.1, 0.12]} />
-        <meshStandardMaterial color="#2A3147" metalness={0.5} roughness={0.5} />
-      </mesh>
-
-      {/* RTG — boom + finned case when installed */}
-      {rtg > 0.5 && (
-        <group position={[-0.75, 0.28, -0.18]} rotation={[0, 0, -0.35]}>
+      {/* RCS Thruster Quads on 4 Corners */}
+      {[
+        [-0.58, 0.28, 0.34],
+        [0.58, 0.28, 0.34],
+        [-0.58, 0.28, -0.34],
+        [0.58, 0.28, -0.34],
+      ].map(([x, y, z], idx) => (
+        <group key={`rcs-${idx}`} position={[x, y, z]}>
           <mesh>
-            <cylinderGeometry args={[0.03, 0.03, 0.42, 8]} />
-            <meshStandardMaterial color="#8B93A6" metalness={0.8} roughness={0.35} />
+            <boxGeometry args={[0.08, 0.08, 0.08]} />
+            <meshStandardMaterial color="#4A5568" metalness={0.9} roughness={0.2} />
           </mesh>
-          <mesh position={[0, -0.32, 0]}>
-            <boxGeometry args={[0.24, 0.26, 0.24]} />
-            <meshStandardMaterial color="#3D4356" metalness={0.6} roughness={0.5} emissive="#3A2A08" emissiveIntensity={0.4} />
+          <mesh position={[x > 0 ? 0.05 : -0.05, 0, 0]} rotation={[0, 0, x > 0 ? -Math.PI / 2 : Math.PI / 2]}>
+            <coneGeometry args={[0.025, 0.06, 8, 1, true]} />
+            <meshStandardMaterial color="#718096" metalness={0.9} roughness={0.2} side={DoubleSide} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* High-Efficiency Segmented Solar Array Wings */}
+      <group ref={wingL} position={[-0.62, 0.05, 0]}>
+        {/* Main Left Wing Panel with Photovoltaic Blue Cells */}
+        <mesh position={[-0.95, 0, 0]}>
+          <boxGeometry args={[1.85, 0.03, 0.62]} />
+          <meshStandardMaterial
+            color="#0C2356"
+            metalness={0.65}
+            roughness={0.22}
+            emissive="#061233"
+            emissiveIntensity={0.8}
+          />
+        </mesh>
+        {/* Photovoltaic Grid Ribs */}
+        {[-1.5, -1.15, -0.8, -0.45].map((pos, i) => (
+          <mesh key={`rib-l-${i}`} position={[pos, 0.018, 0]}>
+            <boxGeometry args={[0.02, 0.005, 0.6]} />
+            <meshStandardMaterial color="#889BBF" metalness={0.9} roughness={0.3} />
+          </mesh>
+        ))}
+        {/* Articulated Deployable Hinge Mast */}
+        <mesh position={[-0.05, 0, 0]}>
+          <cylinderGeometry args={[0.045, 0.045, 0.25, 12]} />
+          <meshStandardMaterial color="#A0AEC0" metalness={0.9} roughness={0.2} />
+        </mesh>
+      </group>
+
+      <group ref={wingR} position={[0.62, 0.05, 0]}>
+        {/* Main Right Wing Panel with Photovoltaic Blue Cells */}
+        <mesh position={[0.95, 0, 0]}>
+          <boxGeometry args={[1.85, 0.03, 0.62]} />
+          <meshStandardMaterial
+            color="#0C2356"
+            metalness={0.65}
+            roughness={0.22}
+            emissive="#061233"
+            emissiveIntensity={0.8}
+          />
+        </mesh>
+        {/* Photovoltaic Grid Ribs */}
+        {[0.45, 0.8, 1.15, 1.5].map((pos, i) => (
+          <mesh key={`rib-r-${i}`} position={[pos, 0.018, 0]}>
+            <boxGeometry args={[0.02, 0.005, 0.6]} />
+            <meshStandardMaterial color="#889BBF" metalness={0.9} roughness={0.3} />
+          </mesh>
+        ))}
+        {/* Articulated Deployable Hinge Mast */}
+        <mesh position={[0.05, 0, 0]}>
+          <cylinderGeometry args={[0.045, 0.045, 0.25, 12]} />
+          <meshStandardMaterial color="#A0AEC0" metalness={0.9} roughness={0.2} />
+        </mesh>
+      </group>
+
+      {/* High-Gain Cassegrain Parabolic Antenna Dish */}
+      <group position={[0, 0.44, 0.22]}>
+        <mesh ref={dish} rotation={[-0.6, 0, 0]}>
+          <coneGeometry args={[0.38, 0.24, 28, 1, true]} />
+          <meshStandardMaterial color="#E2E8F0" metalness={0.85} roughness={0.22} side={DoubleSide} />
+        </mesh>
+        {/* Feed Horn & Sub-reflector Struts */}
+        <mesh position={[0, 0.12, 0.06]}>
+          <cylinderGeometry args={[0.018, 0.018, 0.28, 8]} />
+          <meshStandardMaterial color="#CBD5E0" metalness={0.9} roughness={0.25} />
+        </mesh>
+        <mesh position={[0, 0.24, 0.12]}>
+          <sphereGeometry args={[0.04, 12, 12]} />
+          <meshStandardMaterial color="#D4A94F" metalness={0.9} roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* Star Tracker Navigation Sensor */}
+      <mesh position={[0.32, 0.54, -0.2]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.44, 8]} />
+        <meshStandardMaterial color="#718096" metalness={0.85} roughness={0.3} />
+      </mesh>
+      <mesh position={[0.32, 0.76, -0.2]}>
+        <boxGeometry args={[0.12, 0.12, 0.14]} />
+        <meshStandardMaterial color="#1A202C" metalness={0.6} roughness={0.4} />
+      </mesh>
+
+      {/* RTG Nuclear Power Unit (when fitted) */}
+      {rtg > 0.5 && (
+        <group position={[-0.78, 0.28, -0.18]} rotation={[0, 0, -0.32]}>
+          <mesh>
+            <cylinderGeometry args={[0.035, 0.035, 0.46, 10]} />
+            <meshStandardMaterial color="#718096" metalness={0.85} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, -0.34, 0]}>
+            <boxGeometry args={[0.26, 0.28, 0.26]} />
+            <meshStandardMaterial color="#2D3748" metalness={0.7} roughness={0.4} emissive="#593A04" emissiveIntensity={0.5} />
           </mesh>
           {[0, 1, 2, 3].map((i) => (
-            <mesh key={i} position={[0, -0.32, 0]} rotation={[0, (Math.PI / 2) * i, 0]}>
-              <boxGeometry args={[0.02, 0.3, 0.4]} />
-              <meshStandardMaterial color="#9AA2B4" metalness={0.7} roughness={0.4} />
+            <mesh key={`rtg-fin-${i}`} position={[0, -0.34, 0]} rotation={[0, (Math.PI / 2) * i, 0]}>
+              <boxGeometry args={[0.025, 0.32, 0.44]} />
+              <meshStandardMaterial color="#A0AEC0" metalness={0.8} roughness={0.3} />
             </mesh>
           ))}
         </group>
       )}
 
-      {/* Nozzle pair + plume glow */}
-      {[-0.24, 0.24].map((x) => (
-        <mesh key={x} position={[x, -0.42, 0]}>
-          <coneGeometry args={[0.1, 0.22, 14, 1, true]} />
-          <meshStandardMaterial color="#B9C2D8" metalness={0.9} roughness={0.3} side={DoubleSide} />
+      {/* Dual Main Propulsion Nozzles + Plume Glow */}
+      {[-0.26, 0.26].map((x) => (
+        <mesh key={`nozzle-${x}`} position={[x, -0.44, 0]}>
+          <coneGeometry args={[0.12, 0.26, 18, 1, true]} />
+          <meshStandardMaterial color="#CBD5E0" metalness={0.95} roughness={0.18} side={DoubleSide} />
         </mesh>
       ))}
-      <mesh position={[0, -0.62, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.2, 0.7, 14, 1, true]} />
+      <mesh position={[0, -0.66, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.22, 0.8, 16, 1, true]} />
         <meshBasicMaterial
           ref={glow}
           color={PALETTE.warn}
           transparent
-          opacity={0.3}
+          opacity={0.4}
           blending={AdditiveBlending}
           side={DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Nav light */}
-      <mesh position={[0.56, -0.2, 0.35]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
+      {/* Navigation Strobe Beacons (Green & Cyan) */}
+      <mesh position={[0.61, -0.2, 0.37]}>
+        <sphereGeometry args={[0.04, 10, 10]} />
         <meshBasicMaterial ref={nav} color="#2FE39A" />
+      </mesh>
+      <mesh position={[-0.61, -0.2, 0.37]}>
+        <sphereGeometry args={[0.04, 10, 10]} />
+        <meshBasicMaterial color="#3DE0FF" />
       </mesh>
     </group>
   );

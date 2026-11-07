@@ -17,3 +17,6 @@ export * from './simulation';
 export * from './scoring';
 export * from './commands';
 export * from './data';
+export * from './trajectory';
+export * from './mission';
+export * from './flight';

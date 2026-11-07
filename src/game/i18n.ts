@@ -53,6 +53,7 @@ const en = {
   descent: 'Descent',
   surface: 'Surface Ops',
   styleGuide: 'Style Guide',
+  flight: 'Flight',
   system: 'System',
 
   // Nav / shell
@@ -256,6 +257,7 @@ const ar: Record<StringKey, string> = {
   descent: 'الهبوط',
   surface: 'عمليات السطح',
   styleGuide: 'دليل الأنماط',
+  flight: 'الطيران',
   system: 'النظام',
 
   back: 'رجوع',

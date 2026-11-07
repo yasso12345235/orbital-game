@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,11 +14,14 @@ body,
   height: 100%;
 }
 
+*, *::before, *::after {
+  font-family: 'Cairo', 'Orbitron', system-ui, -apple-system, sans-serif !important;
+}
+
 body {
   margin: 0;
   background: #02050f;
   color: #e8f1ff;
-  font-family: Inter, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;

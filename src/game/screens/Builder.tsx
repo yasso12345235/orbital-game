@@ -1,9 +1,10 @@
 /** Screen 4 — Spacecraft Builder: 7×5 bay grid, live budgets, explained validation. */
 import { Suspense, lazy, useMemo } from 'react';
-import { useMission, COMPONENTS, lookupTables, budgetCapFor, linkInfoFor, type SpacecraftDesign } from '../store';
+import { useMission, COMPONENTS, LAUNCHERS, lookupTables, budgetCapFor, linkInfoFor, type SpacecraftDesign } from '../store';
 import { useLang, useT } from '../hooks';
 import { Bi, HudFrame, HudSlider, Kpi, LearnBox, PanelTag, RingGauge, fmt } from '../components/controls';
 import { unlockedIdsFor } from '../tech';
+import { sound } from '../audio';
 import type { ComponentCategory } from '@engine';
 
 /** v3 step 5 — the live R3F bay preview (lazy; R3F stays out of the main chunk). */
@@ -31,6 +32,9 @@ export function BuilderScreen() {
   const setCursor = useMission((s) => s.setCursor);
   const setScreen = useMission((s) => s.setScreen);
   const beginLaunch = useMission((s) => s.beginLaunch);
+  const autoLayout = useMission((s) => s.autoLayout);
+  const setLauncher = useMission((s) => s.setLauncher);
+  const pushToast = useMission((s) => s.pushToast);
   const progress = useMission((s) => s.progress);
   const settings = useMission((s) => s.settings);
   const difficulty = useMission((s) => s.difficulty);
@@ -42,6 +46,81 @@ export function BuilderScreen() {
   const propSpec = design.components.propulsion ? tables.components[design.components.propulsion] : null;
   const cap = budgetCapFor(difficulty);
   const budget = validate?.budget;
+
+  const smartAutoBuild = (variant: 'standard' | 'high_dv' | 'reliable' = 'standard') => {
+    if (!missionId) return;
+    const pool = COMPONENTS.filter((c) => unlocked.components.has(c.id));
+    const bus = pool.find((c) => c.category === 'bus') ?? pool[0];
+    
+    // Choose power based on variant
+    let power = pool.find((c) => c.category === 'power' && (c.outputPowerW || c.solarAreaM2)) ?? pool.find((c) => c.category === 'power');
+    if (variant === 'high_dv') {
+      power = [...pool.filter((c) => c.category === 'power')].sort((a, b) => a.massKg - b.massKg)[0] ?? power;
+    }
+
+    // Choose propulsion
+    let propulsion = pool.find((c) => c.category === 'propulsion' && (c.ispS ?? 0) >= 280) ?? pool.find((c) => c.category === 'propulsion');
+    if (variant === 'high_dv') {
+      propulsion = [...pool.filter((c) => c.category === 'propulsion')].sort((a, b) => (b.ispS ?? 0) - (a.ispS ?? 0))[0] ?? propulsion;
+    }
+
+    const comms = pool.find((c) => c.category === 'comms');
+    const payload = pool.find((c) => c.category === 'payload');
+    const thermal = pool.find((c) => c.category === 'thermal');
+
+    if (bus) setComponent('bus', bus.id);
+    if (power) setComponent('power', power.id);
+    if (propulsion) {
+      setComponent('propulsion', propulsion.id);
+      const capP = propulsion.propCapacityKg ?? 100;
+      setPropellant(Math.round(capP * (variant === 'high_dv' ? 1.0 : 0.85)));
+    }
+    if (comms) setComponent('comms', comms.id);
+    if (payload) setComponent('payload', payload.id);
+    if (thermal) setComponent('thermal', thermal.id);
+
+    // Apply redundancy if reliable variant
+    if (variant === 'reliable') {
+      toggleRedundancy('power');
+      toggleRedundancy('propulsion');
+      toggleRedundancy('comms');
+    }
+
+    const massEst =
+      (bus?.massKg ?? 100) +
+      (power?.massKg ?? 50) +
+      (propulsion?.massKg ?? 50) +
+      (comms?.massKg ?? 20) +
+      (payload?.massKg ?? 40) +
+      (thermal?.massKg ?? 20) +
+      ((propulsion?.propCapacityKg ?? 100) * 0.85);
+
+    const validLaunchers = LAUNCHERS.filter((l) => unlocked.launchers.has(l.id) && l.capacityToLeoKg >= massEst);
+    if (validLaunchers.length > 0) {
+      setLauncher(validLaunchers[0].id);
+    } else {
+      const bestLauncher = [...LAUNCHERS].sort((a, b) => b.capacityToLeoKg - a.capacityToLeoKg)[0];
+      if (bestLauncher) setLauncher(bestLauncher.id);
+    }
+
+    setTimeout(() => {
+      autoLayout();
+      sound.play('confirm');
+      pushToast(
+        lang === 'ar'
+          ? 'تم التجهيز والتجميع الذكي بنجاح! المركبة جاهزة 100% للتصريح 🚀'
+          : 'Smart auto-build complete! 100% verified & GO for Launch 🚀',
+        'good'
+      );
+    }, 60);
+  };
+
+  const instantLaunch = () => {
+    smartAutoBuild('standard');
+    setTimeout(() => {
+      beginLaunch();
+    }, 120);
+  };
 
   const massFrac = budget ? budget.totalMassKg / budget.launcherCapacityKg : 0;
   const powerFrac = budget && budget.loadW > 0 ? Math.min(1, budget.generationW / (budget.loadW * 2.2)) : 0;
@@ -65,7 +144,7 @@ export function BuilderScreen() {
           <div>
             <div className="flex items-center gap-2">
               <span className="ma-epic-kicker text-[8px] tracking-[0.3em]">
-                {lang === 'ar' ? 'مرفق تجميع المركبات · الغرفة النظيفة' : 'VEHICLE ASSEMBLY BAY · ISO-5 CLEANROOM'}
+                {lang === 'ar' ? 'مرفق تجميع وتجهيز الصاروخ الفضائي' : 'VEHICLE ASSEMBLY BAY · ISO-5 CLEANROOM'}
               </span>
               <span className="rounded-full bg-[rgba(47,224,90,0.15)] px-2 py-0.5 text-[9px] font-bold text-[var(--ma-good)] border border-[rgba(47,224,90,0.3)]">
                 CLEANROOM PASS
@@ -77,31 +156,85 @@ export function BuilderScreen() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-6 text-[11px] ma-num">
-          <div>
-            <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
-              {lang === 'ar' ? 'الكتلة الإجمالية' : 'Total Mass'}
-            </span>
-            <span className="font-bold text-white text-[13px]">
-              {budget ? `${fmt(budget.totalMassKg)} / ${fmt(budget.launcherCapacityKg)} kg` : '—'}
-            </span>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Instant 1-Click Launch Action */}
+          <button
+            type="button"
+            className="ma-tap flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--ma-good)] bg-[rgba(47,224,90,0.25)] hover:bg-[rgba(47,224,90,0.4)] text-white font-extrabold text-xs shadow-[0_0_20px_rgba(47,224,90,0.5)] transition-all animate-pulse"
+            onClick={instantLaunch}
+            title={lang === 'ar' ? 'تجهيز شامل وانطلاق فوري للرحلة مباشرة' : 'Auto build and start flight directly'}
+          >
+            <span className="text-base">🚀</span>
+            <span>{lang === 'ar' ? 'تجهيز تلقائي فوري وانطلاق للرحلة' : 'Instant Auto-Build & Launch'}</span>
+          </button>
+
+          <div className="flex flex-wrap items-center gap-5 text-[11px] ma-num">
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
+                {lang === 'ar' ? 'الكتلة الإجمالية' : 'Total Mass'}
+              </span>
+              <span className="font-bold text-white text-[13px]">
+                {budget ? `${fmt(budget.totalMassKg)} / ${fmt(budget.launcherCapacityKg)} kg` : '—'}
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
+                {lang === 'ar' ? 'الدفع المتاح' : 'Available Δv'}
+              </span>
+              <span className={`font-bold text-[13px] ${budget && budget.dvMarginMps >= 0 ? 'text-[var(--ma-good)]' : 'text-[var(--ma-bad)]'}`}>
+                {budget ? `${fmt(budget.availableDvMps)} m/s` : '—'}
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
+                {lang === 'ar' ? 'الموثوقية' : 'Reliability'}
+              </span>
+              <span className="font-bold text-[var(--ma-gold)] text-[13px]">
+                {budget ? `${(budget.reliability * 100).toFixed(0)}%` : '—'}
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
-              {lang === 'ar' ? 'الدفع المتاح' : 'Available Δv'}
-            </span>
-            <span className={`font-bold text-[13px] ${budget && budget.dvMarginMps >= 0 ? 'text-[var(--ma-good)]' : 'text-[var(--ma-bad)]'}`}>
-              {budget ? `${fmt(budget.availableDvMps)} m/s` : '—'}
-            </span>
-          </div>
-          <div>
-            <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">
-              {lang === 'ar' ? 'الموثوقية' : 'Reliability'}
-            </span>
-            <span className="font-bold text-[var(--ma-gold)] text-[13px]">
-              {budget ? `${(budget.reliability * 100).toFixed(0)}%` : '—'}
-            </span>
-          </div>
+        </div>
+      </div>
+
+      {/* QUICK PRESET LOADOUTS BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-[rgba(6,12,28,0.7)] border border-[rgba(61,224,255,0.2)] backdrop-blur-md">
+        <div className="flex items-center gap-2 text-xs font-bold text-white">
+          <span className="text-base">⚡</span>
+          <span>{lang === 'ar' ? 'أوضاع التجهيز السريع بضغطة واحدة:' : '1-Click Quick Loadout Presets:'}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="ma-tap px-3 py-1.5 rounded-xl border border-[var(--ma-accent)] bg-[rgba(61,224,255,0.15)] hover:bg-[rgba(61,224,255,0.28)] text-white text-xs font-bold transition-all shadow-md"
+            onClick={() => smartAutoBuild('standard')}
+          >
+            ⚖️ {lang === 'ar' ? 'تجهيز متوازن قياسي' : 'Balanced Preset'}
+          </button>
+          <button
+            type="button"
+            className="ma-tap px-3 py-1.5 rounded-xl border border-[var(--ma-gold)] bg-[rgba(233,195,124,0.15)] hover:bg-[rgba(233,195,124,0.28)] text-[var(--ma-gold)] text-xs font-bold transition-all shadow-md"
+            onClick={() => smartAutoBuild('high_dv')}
+          >
+            🚀 {lang === 'ar' ? 'أقصى سرعة ومدى (Δv)' : 'High Delta-V'}
+          </button>
+          <button
+            type="button"
+            className="ma-tap px-3 py-1.5 rounded-xl border border-[var(--ma-good)] bg-[rgba(47,224,90,0.15)] hover:bg-[rgba(47,224,90,0.28)] text-[var(--ma-good)] text-xs font-bold transition-all shadow-md"
+            onClick={() => smartAutoBuild('reliable')}
+          >
+            🛡️ {lang === 'ar' ? 'أقصى أمان وموثوقية' : 'High Reliability'}
+          </button>
+          <button
+            type="button"
+            className="ma-tap px-3 py-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white/80 text-xs font-bold transition-all shadow-md"
+            onClick={() => {
+              autoLayout();
+              sound.play('confirm');
+            }}
+          >
+            🔄 {lang === 'ar' ? 'إعادة الترتيب التلقائي' : 'Auto-Fit Bay'}
+          </button>
         </div>
       </div>
 
@@ -153,7 +286,10 @@ export function BuilderScreen() {
                           type="button"
                           disabled={locked}
                           className="ma-tap w-full text-left"
-                          onClick={() => setComponent(c.id, comp.id)}
+                          onClick={() => {
+                            setComponent(c.id, comp.id);
+                            setTimeout(() => autoLayout(), 40);
+                          }}
                           aria-label={comp.name}
                           title={comp.description}
                         >
@@ -190,6 +326,38 @@ export function BuilderScreen() {
         {/* Center: grid + 3D */}
         <div className="flex flex-col gap-4 min-w-0">
           <HudFrame tag="PAYLOAD BAY 7×5 CLEANROOM" tagAr="حجرة الحمولة ٧×٥ المعقمة">
+            {/* Quick Helper Actions for the Grid */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 p-2.5 rounded-xl bg-[rgba(6,11,24,0.7)] border border-white/10">
+              <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <span>🤖</span>
+                <span>{lang === 'ar' ? 'مساعد التجميع الذكي:' : 'Smart Bay Helper:'}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-lg border border-[var(--ma-accent)] bg-[rgba(61,224,255,0.15)] hover:bg-[rgba(61,224,255,0.3)] text-xs text-white font-bold transition-all shadow-sm"
+                  onClick={() => {
+                    autoLayout();
+                    sound.play('confirm');
+                  }}
+                >
+                  🔄 {lang === 'ar' ? 'توزيع القطع آلياً' : 'Auto-Fit Bay'}
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-lg border border-[var(--ma-gold)] bg-[rgba(233,195,124,0.15)] hover:bg-[rgba(233,195,124,0.3)] text-xs text-[var(--ma-gold)] font-bold transition-all shadow-sm"
+                  onClick={() => {
+                    if (propSpec) {
+                      setPropellant(propSpec.propCapacityKg ?? 100);
+                      sound.play('confirm');
+                    }
+                  }}
+                >
+                  ⛽ {lang === 'ar' ? 'تعبئة وقود كاملة' : 'Full Propellant'}
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <BayGrid />
               <div className="flex-1 w-full min-h-[250px] rounded-2xl overflow-hidden bg-[#03071a] relative border border-[rgba(61,224,255,0.2)] shadow-[0_0_30px_rgba(0,0,0,0.6)]">
@@ -208,7 +376,7 @@ export function BuilderScreen() {
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-[var(--ma-muted)] mt-2">
-              <span>{lang === 'ar' ? 'الأسهم للتنقل، Q/E للتدوير، ENTER للتثبيت، BACK للإزالة.' : 'Arrows move · Q/E rotate · ENTER place · BACK remove'}</span>
+              <span>{lang === 'ar' ? 'يمكنك وضع القطع يدوياً أو الضغط على "توزيع القطع آلياً" لتجهيزها فوراً.' : 'Place manually or click "Auto-Fit Bay" to arrange automatically.'}</span>
               <span className="ma-num text-[var(--ma-accent)] font-mono">GRID: 7×5 SLOTS</span>
             </div>
           </HudFrame>
@@ -290,11 +458,16 @@ export function BuilderScreen() {
             <div className="flex flex-col gap-2.5 mt-2">
               <button
                 type="button"
-                disabled={!validate?.go}
-                className={`ma-tap w-full py-3.5 rounded-xl text-sm font-extrabold uppercase tracking-widest ${validate?.go ? 'ma-master-launch-btn' : 'bg-[var(--ma-line)] text-[var(--ma-muted)] cursor-not-allowed border border-white/5'}`}
-                onClick={beginLaunch}
+                className={`ma-tap w-full py-3.5 rounded-xl text-sm font-extrabold uppercase tracking-widest ${validate?.go ? 'ma-master-launch-btn' : 'border border-[var(--ma-gold)] bg-[rgba(233,195,124,0.2)] hover:bg-[rgba(233,195,124,0.35)] text-[var(--ma-gold)] shadow-[0_0_20px_rgba(233,195,124,0.4)] animate-pulse'}`}
+                onClick={() => {
+                  if (validate?.go) {
+                    beginLaunch();
+                  } else {
+                    instantLaunch();
+                  }
+                }}
               >
-                🚀 {t('launch')}
+                {validate?.go ? `🚀 ${t('launch')}` : `⚡ ${lang === 'ar' ? 'تجهيز تلقائي فوري وانطلاق 🚀' : 'Auto-Fit & Launch 🚀'}`}
               </button>
               <button
                 type="button"

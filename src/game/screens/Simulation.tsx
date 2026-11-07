@@ -106,12 +106,111 @@ function LaunchPhase() {
     }
   }, [progress, soundOn]);
 
+  // Lateral steering: -1.0 (left) to +1.0 (right)
+  const [steerX, setSteerX] = useState(0);
+  const [flightCoins, setFlightCoins] = useState(0);
+  const [coinPopups, setCoinPopups] = useState<{ id: number; amount: number; text: string }[]>([]);
+  const lastStepRef = useRef(-1);
+
+  // Dynamic guidance corridor toward target planet
+  const targetPathX = countdown === 0 ? Math.sin(progress * Math.PI * 2.8) * 0.45 : 0;
+  const steerDelta = Math.abs(steerX - targetPathX);
+  const isAligned = steerDelta < 0.28;
+  const accuracyPct = Math.max(0, Math.min(100, Math.round((1 - steerDelta / 0.6) * 100)));
+  const currentStep = Math.floor(progress * 15);
+
+  // Target celestial body details
+  const targetProfiles: Record<string, { ar: string; en: string; icon: string; dist: string }> = {
+    moon: { ar: 'القمر (Moon)', en: 'The Moon', icon: '🌕', dist: '384,400 km' },
+    mars: { ar: 'المريخ (Mars)', en: 'Mars', icon: '🔴', dist: '225,000,000 km' },
+    leo: { ar: 'مدار الأرض المنخفض (LEO)', en: 'Low Earth Orbit', icon: '🌍', dist: '400 km' },
+    geo: { ar: 'المدار الجغرافي الثابت (GEO)', en: 'Geostationary Orbit', icon: '🛰️', dist: '35,786 km' },
+    venus: { ar: 'الزهرة (Venus)', en: 'Venus', icon: '🟡', dist: '41,000,000 km' },
+    jupiter: { ar: 'المشتري (Jupiter)', en: 'Jupiter', icon: '🪐', dist: '628,000,000 km' },
+  };
+  const targetInfo = (mission?.target && targetProfiles[mission.target]) || {
+    ar: mission?.target ? `${mission.target.toUpperCase()} (كوكب الوجهة)` : 'مدار الوجهة',
+    en: mission?.target ? mission.target.toUpperCase() : 'Target Orbit',
+    icon: '🪐',
+    dist: `${mission?.altitudeKm ?? 400} km`,
+  };
+
+  // Keyboard steering controls (ArrowLeft/Right, A/D, S/Space)
+  useEffect(() => {
+    if (countdown > 0) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+        setSteerX((x) => Math.max(-1, +(x - 0.14).toFixed(2)));
+        if (soundOn) sound.play('tick');
+      } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+        setSteerX((x) => Math.min(1, +(x + 0.14).toFixed(2)));
+        if (soundOn) sound.play('tick');
+      } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's' || e.code === 'Space') {
+        setSteerX(0);
+        if (soundOn) sound.play('tick');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [countdown, soundOn]);
+
+  // Step-based coin reward system: reward player whenever rocket stays inside trajectory corridor
+  useEffect(() => {
+    if (countdown > 0) return;
+    if (progress >= 0.08 && progress < 0.95 && currentStep > lastStepRef.current) {
+      lastStepRef.current = currentStep;
+      if (isAligned) {
+        const reward = steerDelta < 0.14 ? 100 : 50;
+        setFlightCoins((c) => c + reward);
+        useMission.setState((s) => ({
+          progress: {
+            ...s.progress,
+            credits: s.progress.credits + reward,
+          },
+        }));
+        if (soundOn) sound.play('confirm');
+        const popupId = Date.now();
+        const popupText =
+          steerDelta < 0.14
+            ? lang === 'ar'
+              ? `+100 🪙 مسار مثالي! (خطوة ${currentStep}/15)`
+              : `+100 🪙 Perfect Trajectory! (Step ${currentStep}/15)`
+            : lang === 'ar'
+              ? `+50 🪙 مسار صحيح! (خطوة ${currentStep}/15)`
+              : `+50 🪙 On Trajectory! (Step ${currentStep}/15)`;
+        setCoinPopups((prev) => [...prev, { id: popupId, amount: reward, text: popupText }]);
+        setTimeout(() => {
+          setCoinPopups((prev) => prev.filter((p) => p.id !== popupId));
+        }, 1500);
+      }
+    } else if (progress >= 0.95 && lastStepRef.current < 99) {
+      lastStepRef.current = 99;
+      const finalBonus = 250;
+      setFlightCoins((c) => c + finalBonus);
+      useMission.setState((s) => ({
+        progress: {
+          ...s.progress,
+          credits: s.progress.credits + finalBonus,
+        },
+      }));
+      if (soundOn) sound.play('success');
+      setCoinPopups((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          amount: finalBonus,
+          text: lang === 'ar' ? `+250 🏆 وصول ناجح لمدار ${targetInfo.ar}!` : `+250 🏆 Orbital Insertion!`,
+        },
+      ]);
+    }
+  }, [progress, countdown, currentStep, isAligned, steerDelta, soundOn, lang, targetInfo.ar]);
+
   const launchVelocityMps = Math.round(progress * 7850);
   const launchAltitudeKm = (progress * (mission?.altitudeKm ? Math.min(mission.altitudeKm, 180) : 160)).toFixed(1);
   const launchGs = (1 + progress * 2.8).toFixed(1);
 
   return (
-    <div className={`relative min-h-[75vh] rounded-3xl overflow-hidden bg-[#050B1F] border border-[rgba(61,224,255,0.2)] shadow-[0_0_50px_rgba(0,0,0,0.8)] ${countdown <= 3 && countdown > 0 ? 'ma-launch-strobe' : ''}`}>
+    <div className={`relative min-h-[78vh] rounded-3xl overflow-hidden bg-[#050B1F] border border-[rgba(61,224,255,0.25)] shadow-[0_0_50px_rgba(0,0,0,0.8)] ${countdown <= 3 && countdown > 0 ? 'ma-launch-strobe' : ''}`}>
       <Suspense
         fallback={
           <div className="absolute inset-0 grid place-items-center text-[11px] uppercase tracking-widest text-white/50">
@@ -123,6 +222,7 @@ function LaunchPhase() {
           progress={progress}
           launcherId={launcherId}
           shake={shaking ? 0.6 * (1 - progress) : 0}
+          steerX={steerX}
           onCallout={(c) => setCallout(c)}
         />
       </Suspense>
@@ -131,10 +231,10 @@ function LaunchPhase() {
       <div className="ma-hologram-scan" />
 
       {/* Flight Telemetry HUD Overlay */}
-      <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between">
-        {/* Top Bar: Mission Info + Skip */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 bg-[rgba(5,10,24,0.75)] border border-[rgba(255,255,255,0.1)] px-4 py-2 rounded-xl backdrop-blur-md shadow-lg">
+      <div className="absolute inset-0 pointer-events-none p-5 md:p-6 flex flex-col justify-between">
+        {/* Top Bar: Mission Info + Floating Coins Count + Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 bg-[rgba(5,10,24,0.85)] border border-[rgba(255,255,255,0.12)] px-4 py-2 rounded-xl backdrop-blur-md shadow-lg">
             <span className="w-2.5 h-2.5 rounded-full bg-[var(--ma-good)] animate-ping" />
             <div className="text-[11px] ma-num font-mono">
               <span className="text-[var(--ma-gold)] font-bold">{launcher?.name.toUpperCase()}</span>
@@ -143,57 +243,115 @@ function LaunchPhase() {
             </div>
           </div>
 
-          <div className="pointer-events-auto">
-            <button type="button" className="ma-tap px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.18)] bg-[rgba(10,18,36,0.8)] hover:bg-[rgba(233,195,124,0.15)] hover:border-[var(--ma-gold)] text-xs font-bold text-white uppercase tracking-wider backdrop-blur-md transition-all shadow-md" onClick={skipLaunch}>
+          {/* Real-time Accumulated Coins Badge */}
+          <div className="flex items-center gap-2 bg-[rgba(233,195,124,0.15)] border border-[var(--ma-gold)] px-4 py-2 rounded-xl backdrop-blur-md shadow-[0_0_15px_rgba(233,195,124,0.25)]">
+            <span className="text-base animate-bounce">🪙</span>
+            <div className="text-xs font-mono font-bold text-white">
+              <span className="text-[var(--ma-gold)]">+{flightCoins}</span> <span className="text-white/60">CR</span>
+            </div>
+          </div>
+
+          <div className="pointer-events-auto flex items-center gap-2">
+            {countdown > 0 && (
+              <button
+                type="button"
+                className="ma-tap px-4 py-2 rounded-xl border border-[var(--ma-good)] bg-[rgba(47,224,90,0.25)] hover:bg-[rgba(47,224,90,0.4)] text-xs font-bold text-white uppercase tracking-wider backdrop-blur-md transition-all shadow-[0_0_15px_rgba(47,224,90,0.4)] animate-pulse"
+                onClick={() => {
+                  setCountdown(0);
+                  sound.play('confirm');
+                }}
+              >
+                🚀 {lang === 'ar' ? 'انطلاق فوري' : 'Instant Liftoff'}
+              </button>
+            )}
+            <button
+              type="button"
+              className="ma-tap px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.18)] bg-[rgba(10,18,36,0.8)] hover:bg-[rgba(233,195,124,0.15)] hover:border-[var(--ma-gold)] text-xs font-bold text-white uppercase tracking-wider backdrop-blur-md transition-all shadow-md"
+              onClick={skipLaunch}
+            >
               {lang === 'ar' ? 'تخطي التسلسل »' : 'Skip sequence »'}
             </button>
           </div>
         </div>
 
-        {/* Live Flight Telemetry Stream (Left HUD) */}
+        {/* Trajectory Guidance Highway to Destination Planet (Active when airborne) */}
         {countdown === 0 && (
-          <div className="self-start bg-[rgba(5,11,26,0.85)] border border-[rgba(61,224,255,0.25)] p-4 rounded-2xl backdrop-blur-md shadow-2xl max-w-[260px] space-y-2.5 animate-in fade-in slide-in-from-left-4 duration-500">
-            <div className="flex items-center justify-between text-[9px] font-mono text-[var(--ma-accent)] uppercase tracking-widest border-b border-white/10 pb-1">
-              <span>{lang === 'ar' ? 'بيانات القياس عن بُعد' : 'FLIGHT TELEMETRY'}</span>
-              <span className="animate-pulse">● REC</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px] ma-num font-mono">
-              <div>
-                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'السرعة' : 'VELOCITY'}</span>
-                <span className="text-base font-bold text-white">{launchVelocityMps} <small className="text-[9px] text-[var(--ma-muted)]">m/s</small></span>
-              </div>
-              <div>
-                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الارتفاع' : 'ALTITUDE'}</span>
-                <span className="text-base font-bold text-[var(--ma-accent)]">{launchAltitudeKm} <small className="text-[9px] text-[var(--ma-muted)]">km</small></span>
-              </div>
-              <div>
-                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'قوى الجاذبية' : 'ACCELERATION'}</span>
-                <span className="text-base font-bold text-[var(--ma-gold)]">{launchGs} G</span>
-              </div>
-              <div>
-                <span className="text-[9px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الضغط الديناميكي' : 'DYN PRESSURE'}</span>
-                <span className="text-xs font-bold text-[var(--ma-good)]">{progress > 0.35 && progress < 0.65 ? 'MAX-Q' : 'NOMINAL'}</span>
+          <div className="self-center my-1 pointer-events-auto flex flex-col items-center gap-2 max-w-[500px] w-full px-4 animate-in fade-in zoom-in-95 duration-500">
+            {/* Target Destination Planet Banner */}
+            <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-[rgba(61,224,255,0.35)] bg-[rgba(5,11,26,0.85)] backdrop-blur-md shadow-[0_0_20px_rgba(61,224,255,0.2)]">
+              <span className="text-lg">{targetInfo.icon}</span>
+              <div className="text-xs font-bold text-white">
+                <span className="text-[var(--ma-accent)]">{lang === 'ar' ? targetInfo.ar : targetInfo.en}</span>
+                <span className="text-white/40 mx-2">·</span>
+                <span className="text-[var(--ma-gold)] font-mono text-[11px]">{targetInfo.dist}</span>
               </div>
             </div>
-            {/* Live Audio Carrier Waveform */}
-            <div className="pt-1 border-t border-white/5">
-              <div className="flex items-center justify-between text-[8px] font-mono text-[var(--ma-muted)] mb-1">
-                <span>ACOUSTIC SPECTRUM</span>
-                <span className="text-[var(--ma-good)]">CARRIER LOCK</span>
+
+            {/* Visual Trajectory Guidance Highway Corridor */}
+            <div className="w-full relative py-3">
+              {/* Corridor Track Background */}
+              <div className="relative h-7 rounded-xl ma-corridor-track overflow-hidden flex items-center justify-center">
+                {/* Center baseline */}
+                <div className="absolute inset-y-0 w-0.5 bg-white/20 left-1/2 -translate-x-1/2" />
+                
+                {/* Target Waypoint Gate marker */}
+                <div
+                  className="absolute top-0 bottom-0 w-16 -ml-8 flex items-center justify-center ma-corridor-gate"
+                  style={{ left: `${((targetPathX + 1) / 2) * 100}%` }}
+                >
+                  <div className="w-full h-full border-x-2 border-dashed border-[var(--ma-gold)] bg-[rgba(233,195,124,0.15)] flex items-center justify-center">
+                    <span className="text-[9px] font-mono text-[var(--ma-gold)] font-black tracking-tighter">GATE</span>
+                  </div>
+                </div>
+
+                {/* Player's Rocket Steering Reticle */}
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 -ml-4 flex flex-col items-center ma-steer-reticle pointer-events-none z-10"
+                  style={{ left: `${((steerX + 1) / 2) * 100}%` }}
+                >
+                  <span className={`text-base transition-transform ${isAligned ? 'scale-110 drop-shadow-[0_0_10px_#3de0ff]' : 'drop-shadow-[0_0_8px_#ff5470]'}`}>
+                    🚀
+                  </span>
+                  <div className={`w-2 h-1 rounded-full ${isAligned ? 'bg-[var(--ma-good)]' : 'bg-[var(--ma-bad)]'}`} />
+                </div>
               </div>
-              <svg viewBox="0 0 100 12" className="w-full h-3 stroke-[var(--ma-accent)] fill-none">
-                <path d="M0,6 Q10,0 20,6 T40,6 T60,6 T80,6 T100,6" strokeWidth="1.5" className="ma-scope-wave" />
-              </svg>
+
+              {/* Corridor Boundaries & Key hints */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-white/50 mt-1 px-1">
+                <span className="hover:text-white cursor-pointer" onClick={() => setSteerX((x) => Math.max(-1, +(x - 0.2).toFixed(2)))}>◀ [A] يسار</span>
+                <span className={`font-bold transition-colors ${isAligned ? 'text-[var(--ma-good)]' : 'text-[var(--ma-bad)]'}`}>
+                  {isAligned
+                    ? lang === 'ar'
+                      ? `🟢 مسار دقيق مؤمّن (${accuracyPct}%) · ربح كوينز`
+                      : `🟢 Locked on Path (${accuracyPct}%) · Earning Coins`
+                    : lang === 'ar'
+                      ? `⚠️ انحراف عن المسار (${accuracyPct}%) · وجّه الصاروخ`
+                      : `⚠️ Off Track (${accuracyPct}%) · Steer into Gate`}
+                </span>
+                <span className="hover:text-white cursor-pointer" onClick={() => setSteerX((x) => Math.min(1, +(x + 0.2).toFixed(2)))}>يمين [D] ▶</span>
+              </div>
+            </div>
+
+            {/* Floating Coin Notification Popups */}
+            <div className="absolute -top-12 flex flex-col items-center pointer-events-none">
+              {coinPopups.map((p) => (
+                <div
+                  key={p.id}
+                  className="ma-coin-popup px-3 py-1 rounded-xl bg-[rgba(10,20,40,0.92)] border border-[var(--ma-gold)] text-xs font-bold text-[var(--ma-gold)] shadow-[0_0_20px_rgba(233,195,124,0.5)] flex items-center gap-1.5"
+                >
+                  <span>{p.text}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Center: Massive Countdown Clock */}
+        {/* Center: Countdown Clock / Ascent Callout */}
         <div className="text-center self-center my-auto">
-          <div className={`ma-kpi-num ma-num font-black text-7xl md:text-8xl tracking-tight transition-all duration-300 ${countdown <= 3 && countdown > 0 ? 'text-[var(--ma-bad)] scale-110 drop-shadow-[0_0_40px_rgba(255,84,112,0.8)]' : 'text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.7)]'}`}>
+          <div className={`ma-kpi-num ma-num font-black text-6xl md:text-7xl tracking-tight transition-all duration-300 ${countdown <= 3 && countdown > 0 ? 'text-[var(--ma-bad)] scale-110 drop-shadow-[0_0_40px_rgba(255,84,112,0.8)]' : 'text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.7)]'}`}>
             {countdown > 0 ? `${t('tMinus')}${countdown}` : `T+${Math.round(progress * 26)}s`}
           </div>
-          <div className="inline-block mt-3 px-4 py-1.5 rounded-full border border-white/20 bg-[rgba(5,10,24,0.75)] backdrop-blur-md shadow-xl">
+          <div className="inline-block mt-2 px-4 py-1 rounded-full border border-white/20 bg-[rgba(5,10,24,0.75)] backdrop-blur-md shadow-xl">
             <span className="font-hud text-xs md:text-sm font-bold tracking-[0.25em] text-[var(--ma-gold)] uppercase" dir="ltr">
               {callout.text}
             </span>
@@ -205,28 +363,89 @@ function LaunchPhase() {
           )}
         </div>
 
-        {/* Bottom Bar: GO/NO-GO Checklist & Trajectory Info */}
-        <div className="flex items-end justify-between gap-4">
-          <div className="bg-[rgba(5,11,26,0.85)] border border-[rgba(255,255,255,0.12)] p-3.5 rounded-2xl backdrop-blur-md shadow-2xl min-w-[220px]">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-[var(--ma-muted)] font-mono border-b border-white/10 pb-1.5 mb-2">
-              <span>{t('goNogo')}</span>
-              <span className="text-[var(--ma-good)] font-bold">ALL GO</span>
+        {/* Bottom Section: Flight Deck Controls + Telemetry */}
+        <div className="flex flex-wrap items-end justify-between gap-4 pointer-events-auto">
+          {/* Live Flight Telemetry */}
+          {countdown === 0 && (
+            <div className="bg-[rgba(5,11,26,0.85)] border border-[rgba(61,224,255,0.25)] p-3 rounded-2xl backdrop-blur-md shadow-2xl min-w-[210px] space-y-1.5 animate-in fade-in slide-in-from-left-4 duration-500">
+              <div className="flex items-center justify-between text-[9px] font-mono text-[var(--ma-accent)] uppercase tracking-widest border-b border-white/10 pb-1">
+                <span>{lang === 'ar' ? 'القياس عن بُعد' : 'TELEMETRY'}</span>
+                <span className="animate-pulse">● REC</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px] ma-num font-mono">
+                <div>
+                  <span className="text-[8px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'السرعة' : 'VELOCITY'}</span>
+                  <span className="text-sm font-bold text-white">{launchVelocityMps} <small className="text-[8px] text-[var(--ma-muted)]">m/s</small></span>
+                </div>
+                <div>
+                  <span className="text-[8px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الارتفاع' : 'ALTITUDE'}</span>
+                  <span className="text-sm font-bold text-[var(--ma-accent)]">{launchAltitudeKm} <small className="text-[8px] text-[var(--ma-muted)]">km</small></span>
+                </div>
+                <div>
+                  <span className="text-[8px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الجاذبية' : 'G-FORCE'}</span>
+                  <span className="text-sm font-bold text-[var(--ma-gold)]">{launchGs} G</span>
+                </div>
+                <div>
+                  <span className="text-[8px] text-[var(--ma-muted)] block">{lang === 'ar' ? 'الخطوة' : 'STEP'}</span>
+                  <span className="text-xs font-bold text-[var(--ma-good)]">{Math.min(15, currentStep + 1)} / 15</span>
+                </div>
+              </div>
             </div>
-            <ul className="space-y-1.5">
-              {launch.goNoGo.map((g) => (
-                <li key={g.name} className="flex items-center justify-between text-xs ma-num font-mono" dir="ltr">
-                  <span className="text-white/80">{g.name}</span>
-                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${g.go ? 'bg-[rgba(47,224,90,0.15)] text-[var(--ma-good)] border border-[rgba(47,224,90,0.3)]' : 'bg-[rgba(255,84,112,0.15)] text-[var(--ma-bad)] border border-[rgba(255,84,112,0.3)]'}`}>
-                    {g.go ? 'GO' : 'NO-GO'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          )}
 
+          {/* Interactive Cockpit Steering Deck (Accessible to click/touch and keys) */}
+          {countdown === 0 && (
+            <div className="flex flex-col items-center gap-1.5 bg-[rgba(5,11,26,0.9)] border border-[rgba(61,224,255,0.3)] p-3 rounded-2xl backdrop-blur-md shadow-[0_0_25px_rgba(0,0,0,0.7)] mx-auto">
+              <span className="text-[10px] font-mono text-[var(--ma-accent)] uppercase tracking-wider">
+                🎮 {lang === 'ar' ? 'تحكم توجيه الصاروخ' : 'MANUAL ROCKET STEERING'}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3.5 py-2 rounded-xl bg-[rgba(10,18,36,0.9)] hover:bg-[rgba(61,224,255,0.2)] border border-[rgba(61,224,255,0.4)] text-xs font-bold text-white transition-all active:scale-95 shadow-md"
+                  onClick={() => {
+                    setSteerX((x) => Math.max(-1, +(x - 0.2).toFixed(2)));
+                    if (soundOn) sound.play('tick');
+                  }}
+                  title="A / Arrow Left"
+                >
+                  ◀ {lang === 'ar' ? 'يسار (A)' : 'Left (A)'}
+                </button>
+                <button
+                  type="button"
+                  className="px-3.5 py-2 rounded-xl bg-[rgba(10,18,36,0.9)] hover:bg-[rgba(233,195,124,0.2)] border border-[rgba(233,195,124,0.4)] text-xs font-bold text-[var(--ma-gold)] transition-all active:scale-95 shadow-md"
+                  onClick={() => {
+                    setSteerX(0);
+                    if (soundOn) sound.play('tick');
+                  }}
+                  title="S / Space"
+                >
+                  🎯 {lang === 'ar' ? 'توسيط (S)' : 'Center (S)'}
+                </button>
+                <button
+                  type="button"
+                  className="px-3.5 py-2 rounded-xl bg-[rgba(10,18,36,0.9)] hover:bg-[rgba(61,224,255,0.2)] border border-[rgba(61,224,255,0.4)] text-xs font-bold text-white transition-all active:scale-95 shadow-md"
+                  onClick={() => {
+                    setSteerX((x) => Math.min(1, +(x + 0.2).toFixed(2)));
+                    if (soundOn) sound.play('tick');
+                  }}
+                  title="D / Arrow Right"
+                >
+                  {lang === 'ar' ? 'يمين (D)' : 'Right (D)'} ▶
+                </button>
+              </div>
+              <span className="text-[9px] text-[var(--ma-muted)] font-mono">
+                {lang === 'ar' ? 'تحكّم بالمفاتيح [A / D] أو الأسهم · اربح كوينز عند مطابقة الممر' : 'Use [A / D] or Arrows · Keep inside the corridor to earn coins'}
+              </span>
+            </div>
+          )}
+
+          {/* Right Info: Target & Checklist */}
           <div className="text-right text-white/90 text-xs ma-num font-mono bg-[rgba(5,11,26,0.85)] border border-[rgba(255,255,255,0.12)] px-4 py-2.5 rounded-2xl backdrop-blur-md shadow-2xl">
-            <p className="font-bold text-[var(--ma-accent)]">{launcher?.name} → {mission?.target.toUpperCase()}</p>
-            <p className="text-[10px] text-[var(--ma-muted)] mt-0.5">{lang === 'ar' ? 'T−10 ← إشعال المحركات ← المدار' : 'T−10 → ignition → orbital insertion'}</p>
+            <p className="font-bold text-[var(--ma-accent)]">{launcher?.name} → {targetInfo.en}</p>
+            <p className="text-[10px] text-[var(--ma-muted)] mt-0.5">
+              {lang === 'ar' ? 'مسار الإطلاق ← الممر المداري ← الوصول للوجهة' : 'Launch trajectory → Orbital Corridor → Insertion'}
+            </p>
           </div>
         </div>
       </div>
@@ -246,10 +465,15 @@ function OpsPhase() {
   const design = useMission((s) => s.design);
   const validate = useMission((s) => s.validate);
   const endMission = useMission((s) => s.endMission);
+  const startExpedition = useMission((s) => s.startExpedition);
+  const dispatch = useMission((s) => s.dispatch);
   const learnMode = useMission((s) => s.settings.learnMode);
   const altitudeOffsetKm = useMission((s) => s.altitudeOffsetKm);
   const inclinationDeg = useMission((s) => s.inclinationDeg);
   const logRef = useRef<HTMLDivElement>(null);
+
+  const [showArrival, setShowArrival] = useState(false);
+  const hasTriggeredArrivalRef = useRef(false);
 
   const mission = missionId ? lookupTables().missions[missionId] : null;
   const link = missionId ? linkInfoFor(missionId, design) : null;
@@ -286,18 +510,79 @@ function OpsPhase() {
 
   const batteryPct = sim.batteryCapacityWh > 0 ? (sim.batteryChargeWh / sim.batteryCapacityWh) * 100 : 0;
   const goalFrac = mission.scienceGoalGb > 0 ? Math.min(1, sim.dataReturnedGb / mission.scienceGoalGb) : 0;
-  const timelineFrac = Math.min(1, sim.elapsedDays / sim.durationDays);
+  const timelineFrac = Math.min(1, sim.elapsedDays / Math.max(1, sim.durationDays));
   const isCritical = sim.eventLog.slice(-3).some((e) => e.severity === 'critical') && !sim.safeMode;
 
   const dvFrac = validate && validate.budget.availableDvMps > 0 ? sim.dvRemainingMps / validate.budget.availableDvMps : 0;
   const altitudeKm = mission.altitudeKm + altitudeOffsetKm;
   const inclination = inclinationDeg || mission.inclinationDeg;
-  const dvPct = Math.min(100, dvFrac * 100);
   const powerTone = batteryPct <= 20 ? 'bad' as const : batteryPct <= 40 ? 'warn' as const : undefined;
+  const dvPct = Math.min(100, dvFrac * 100);
   const nf = new Intl.NumberFormat('en-US');
   const fmtRangeKm = (km: number) => km >= 1e6 ? `${(km / 1e6).toFixed(2)}M km` : `${nf.format(Math.round(km))} km`;
   const fmtDelayS = (s: number) => (s >= 1 ? `${s.toFixed(1)} s` : `${Math.max(1, Math.round(s * 1000))} ms`);
   const fmtRate = (mbps: number) => (mbps >= 1000 ? `${(mbps / 1000).toFixed(2)} Gbps` : mbps >= 1 ? `${mbps.toFixed(1)} Mbps` : `${Math.max(0, mbps * 1000).toFixed(0)} kbps`);
+
+  // Target Destination Configuration
+  const targetIcons: Record<string, string> = {
+    moon: '🌕',
+    mars: '🔴',
+    venus: '🟡',
+    jupiter: '🪐',
+    europa: '❄️',
+    titan: '🌫️',
+    eros: '☄️',
+    leo: '🌍',
+    gto: '🛰️',
+    geo: '📡',
+  };
+  const targetEmoji = targetIcons[mission.target] ?? '🎯';
+  const targetLabel = lang === 'ar' ? (mission.nameAr ?? mission.name) : mission.name;
+  const canLand = ['moon', 'mars', 'europa', 'titan', 'eros'].includes(mission.target);
+  const totalDistKm = link?.distanceKm ?? (mission.altitudeKm > 2000 ? 54600000 : 384400);
+  const distFlown = totalDistKm * timelineFrac;
+  const etaDays = Math.max(0, sim.durationDays - sim.elapsedDays).toFixed(1);
+
+  // Auto-trigger arrival modal once 100% journey completed
+  useEffect(() => {
+    if (timelineFrac >= 1 && !hasTriggeredArrivalRef.current) {
+      hasTriggeredArrivalRef.current = true;
+      setShowArrival(true);
+      sound.play('success');
+    }
+  }, [timelineFrac]);
+
+  const handleBurnBoost = () => {
+    sound.play('fire');
+    const step = Math.max(1, sim.durationDays * 0.12);
+    tick(step);
+    dispatch('FIRE', { playerInitiated: true });
+  };
+
+  const handleCycleWarp = () => {
+    const scales: (1 | 10 | 100)[] = [1, 10, 100];
+    const curr = (sim.timeScale as 1 | 10 | 100) || 1;
+    const next = scales[(scales.indexOf(curr) + 1) % scales.length] ?? 1;
+    useMission.setState((s) => (s.sim ? { sim: { ...s.sim, timeScale: next } } : {}));
+    sound.play('key');
+  };
+
+  const handleCollectScience = () => {
+    sound.play('scan');
+    dispatch('SCAN', { playerInitiated: true });
+    useMission.setState((s) => (s.sim ? { sim: { ...s.sim, dataReturnedGb: s.sim.dataReturnedGb + 8 } } : {}));
+    sound.play('confirm');
+  };
+
+  const handleArriveNow = () => {
+    sound.play('confirm');
+    const remainingDays = Math.max(0, sim.durationDays - sim.elapsedDays);
+    if (remainingDays > 0) {
+      tick(remainingDays);
+    }
+    setShowArrival(true);
+    sound.play('success');
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -317,7 +602,7 @@ function OpsPhase() {
               </span>
             </div>
             <h2 className="font-hud text-base font-bold tracking-wider text-white">
-              {lang === 'ar' ? mission.nameAr ?? mission.name : mission.name}
+              {targetLabel}
             </h2>
           </div>
         </div>
@@ -337,6 +622,185 @@ function OpsPhase() {
           </div>
         </div>
       </div>
+
+      {/* --- INTERPLANETARY VOYAGE PROGRESS TRACKER & STREAMLINED FLIGHT CONTROLS --- */}
+      <div className="rounded-2xl border border-[color-mix(in_srgb,var(--ma-accent)_35%,var(--ma-line))] bg-[radial-gradient(ellipse_at_top,#0b193d_0%,#050b1f_90%)] p-4 shadow-[0_0_35px_rgba(0,0,0,0.6)] backdrop-blur-md">
+        {/* Origin to Destination Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
+              <span className="flex items-center gap-1 text-[var(--ma-accent)]">🌍 {lang === 'ar' ? 'الأرض (نقطة الانطلاق)' : 'Earth (Origin)'}</span>
+              <span className="text-[var(--ma-gold)] font-bold">───────►</span>
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--ma-accent)_20%,transparent)] border border-[var(--ma-accent)] text-white shadow-[0_0_12px_rgba(61,224,255,0.4)]">
+                <span>{targetEmoji}</span>
+                <span className="font-extrabold">{targetLabel}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Live Flight Progress Metrics */}
+          <div className="flex flex-wrap items-center gap-4 text-xs font-mono ma-num">
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'المسافة المقطوعة' : 'Distance Flown'}</span>
+              <span className="font-bold text-[var(--ma-accent)]">{fmtRangeKm(distFlown)} / {fmtRangeKm(totalDistKm)}</span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'السرعة الفضائية' : 'Cruise Velocity'}</span>
+              <span className="font-bold text-[var(--ma-good)]">{(11.2 + timelineFrac * 6.5).toFixed(1)} km/s</span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'الوصول التقديري' : 'ETA to Target'}</span>
+              <span className="font-bold text-[var(--ma-gold)]">{etaDays} {lang === 'ar' ? 'يوم' : 'days'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Visual Animated Flight Path */}
+        <div className="relative mt-5 mb-4">
+          <div className="h-3 w-full rounded-full bg-[#050b1a] border border-white/15 overflow-hidden relative shadow-inner">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[var(--ma-accent)] via-[#5eead4] to-[var(--ma-gold)] shadow-[0_0_18px_var(--ma-accent)] transition-all duration-300"
+              style={{ width: `${timelineFrac * 100}%` }}
+            />
+          </div>
+
+          {/* Rocket icon traveling along the track */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none transition-all duration-300"
+            style={{ left: `${Math.max(2, Math.min(98, timelineFrac * 100))}%` }}
+          >
+            <span className="text-xl filter drop-shadow-[0_0_10px_#3de0ff] animate-pulse">🚀</span>
+            <span className="text-[8px] font-bold font-mono px-1.5 py-0.2 rounded bg-[rgba(6,12,26,0.92)] text-[var(--ma-accent)] border border-[var(--ma-accent)] whitespace-nowrap mt-1">
+              {(timelineFrac * 100).toFixed(0)}%
+            </span>
+          </div>
+        </div>
+
+        {/* STREAMLINED EASY CONTROLS */}
+        <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--ma-gold-hi)] font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[var(--ma-good)] animate-ping" />
+              {lang === 'ar' ? 'أوامر التحكم السريع بالرحلة:' : 'FAST FLIGHT CONTROLS:'}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Boost / Burn engines */}
+            <button
+              type="button"
+              className="ma-tap flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[var(--ma-accent)] bg-[color-mix(in_srgb,var(--ma-accent)_15%,transparent)] hover:bg-[color-mix(in_srgb,var(--ma-accent)_32%,transparent)] text-white font-bold text-xs shadow-[0_0_15px_rgba(61,224,255,0.3)] transition-all"
+              onClick={handleBurnBoost}
+              title={lang === 'ar' ? 'تشغيل الدفع لتسريع الوصول للهدف' : 'Fire thrusters to speed up transit'}
+            >
+              <span>🔥</span>
+              <span>{lang === 'ar' ? 'دفع المحركات (+12% تقدم)' : 'Burn Boost (+12%)'}</span>
+            </button>
+
+            {/* Time warp cycle */}
+            <button
+              type="button"
+              className="ma-tap flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[var(--ma-gold)] bg-[color-mix(in_srgb,var(--ma-gold)_15%,transparent)] hover:bg-[color-mix(in_srgb,var(--ma-gold)_32%,transparent)] text-white font-bold text-xs shadow-[0_0_15px_rgba(255,197,66,0.3)] transition-all"
+              onClick={handleCycleWarp}
+              title={lang === 'ar' ? 'مضاعفة سرعة الوقت' : 'Cycle warp multiplier'}
+            >
+              <span>⏩</span>
+              <span>{lang === 'ar' ? `تسريع الزمن ×${sim.timeScale}` : `Warp ×${sim.timeScale}`}</span>
+            </button>
+
+            {/* Collect Science */}
+            <button
+              type="button"
+              className="ma-tap flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[var(--ma-good)] bg-[color-mix(in_srgb,var(--ma-good)_15%,transparent)] hover:bg-[color-mix(in_srgb,var(--ma-good)_32%,transparent)] text-white font-bold text-xs shadow-[0_0_15px_rgba(47,227,154,0.3)] transition-all"
+              onClick={handleCollectScience}
+              title={lang === 'ar' ? 'جمع بيانات علمية من الفضاء' : 'Collect science data'}
+            >
+              <span>📡</span>
+              <span>{lang === 'ar' ? 'مسح وجمع بيانات' : 'Scan & Collect'}</span>
+            </button>
+
+            {/* Instant Arrival to Destination */}
+            <button
+              type="button"
+              className="ma-tap flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[var(--ma-gold)] bg-gradient-to-r from-[var(--ma-gold)] to-[#ff8a2f] text-[#050b1f] font-black text-xs shadow-[0_0_25px_rgba(255,197,66,0.6)] transition-all hover:scale-105"
+              onClick={handleArriveNow}
+              title={lang === 'ar' ? 'الوصول فوراً للوجهة والدخول المداري' : 'Instant arrival at destination'}
+            >
+              <span>🎯</span>
+              <span>{lang === 'ar' ? 'الوصول للهدف فوراً' : 'Instant Arrival'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MISSION ARRIVAL CELEBRATION MODAL --- */}
+      {showArrival && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg animate-in fade-in duration-300">
+          <div className="relative max-w-lg w-full rounded-3xl border-2 border-[var(--ma-gold)] bg-[radial-gradient(circle_at_top,#10224d,#050b1f)] p-6 md:p-8 shadow-[0_0_60px_rgba(255,197,66,0.4)] text-center">
+            <div className="text-5xl mb-3 animate-bounce">{targetEmoji}</div>
+            <span className="ma-epic-kicker text-[10px] tracking-[0.3em] text-[var(--ma-gold)]">
+              {lang === 'ar' ? 'إنجاز الرحلة · الوصول المداري' : 'MISSION ACCOMPLISHED · ORBITAL ARRIVAL'}
+            </span>
+            <h2 className="font-hud text-2xl md:text-3xl font-black text-white mt-2">
+              {lang === 'ar' ? `تم الوصول بنجاح إلى ${targetLabel}! 🎉` : `Arrived at ${targetLabel}! 🎉`}
+            </h2>
+            <p className="mt-3 text-xs md:text-sm text-[var(--ma-muted)] leading-relaxed">
+              {lang === 'ar'
+                ? `أتم الصاروخ والمركبة بنجاح مسار الرحلة الفضائية بالكامل، واستقرت المركبة في المدار النهائي بنجاح تام لجمع البيانات العلمية وتحقيق أهداف المهمة.`
+                : `The spacecraft successfully completed interplanetary transit and safely entered stable orbit around ${targetLabel}.`}
+            </p>
+
+            {/* Stats summary */}
+            <div className="my-5 grid grid-cols-3 gap-3 p-3 rounded-2xl bg-[rgba(6,12,28,0.7)] border border-white/10 text-xs font-mono ma-num">
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'البيانات' : 'Data'}</span>
+                <span className="font-bold text-[var(--ma-accent)] text-sm">{sim.dataReturnedGb.toFixed(1)} GB</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'مدة الرحلة' : 'Days'}</span>
+                <span className="font-bold text-white text-sm">{sim.elapsedDays.toFixed(0)} d</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--ma-muted)] block">{lang === 'ar' ? 'حالة الطاقة' : 'Power'}</span>
+                <span className="font-bold text-[var(--ma-good)] text-sm">{batteryPct.toFixed(0)}%</span>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {canLand && (
+                <button
+                  type="button"
+                  className="ma-tap flex-1 py-3 px-4 rounded-xl border border-[var(--ma-accent)] bg-[color-mix(in_srgb,var(--ma-accent)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--ma-accent)_45%,transparent)] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg transition-all"
+                  onClick={() => {
+                    setShowArrival(false);
+                    startExpedition();
+                  }}
+                >
+                  🛬 {lang === 'ar' ? 'الهبوط واستكشاف السطح' : 'Surface Descent & Landing'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="ma-tap flex-1 py-3 px-4 rounded-xl ma-master-launch-btn text-xs font-black uppercase tracking-wider"
+                onClick={() => {
+                  setShowArrival(false);
+                  endMission();
+                }}
+              >
+                🏆 {lang === 'ar' ? 'تقرير المهمة والنتائج' : 'Debrief & Results'}
+              </button>
+              <button
+                type="button"
+                className="ma-tap py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[var(--ma-muted)] font-semibold text-xs"
+                onClick={() => setShowArrival(false)}
+              >
+                🛸 {lang === 'ar' ? 'البقاء في المدار' : 'Keep Orbiting'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`grid grid-cols-1 xl:grid-cols-[290px_1fr_290px] gap-4 ${isCritical ? 'ma-critical-flash' : ''}`}>
         {/* LEFT: power + event log */}

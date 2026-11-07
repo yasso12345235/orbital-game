@@ -432,7 +432,25 @@ export function MissionSelectScreen() {
           <Field label={t('window')} value={current ? (lang === 'ar' ? current.launchWindowAr ?? '—' : current.launchWindow ?? '—') : '—'} />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {current && !isLocked(current.id) && (
+            <button
+              type="button"
+              onClick={() => {
+                useMission.getState().selectMission(current.id);
+                sound.play('confirm');
+                setTimeout(() => {
+                  const st = useMission.getState();
+                  st.autoLayout();
+                  st.beginLaunch();
+                }, 100);
+              }}
+              className="ma-tap px-4 py-2 rounded-xl border border-[var(--ma-good)] bg-[rgba(47,224,90,0.22)] hover:bg-[rgba(47,224,90,0.4)] text-white font-extrabold text-xs shadow-[0_0_15px_rgba(47,224,90,0.4)] animate-pulse flex items-center gap-1.5"
+            >
+              <span>🚀</span>
+              <span>{lang === 'ar' ? 'انطلاق فوري للرحلة' : 'Instant Launch'}</span>
+            </button>
+          )}
           {current && isLocked(current.id) && (
             <button type="button" className="ma-pill ma-pill-ghost" onClick={unlockRoute}>
               <Icon name="tech" size={15} />
@@ -449,7 +467,7 @@ export function MissionSelectScreen() {
             <span>
               {current && isLocked(current.id)
                 ? (lang === 'ar' ? 'مقفلة' : 'LOCKED')
-                : (lang === 'ar' ? 'انطلاق' : 'GO')}
+                : (lang === 'ar' ? 'تجهيز' : 'BUILD')}
             </span>
           </button>
         </div>

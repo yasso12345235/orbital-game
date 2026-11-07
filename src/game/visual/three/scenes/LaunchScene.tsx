@@ -53,6 +53,8 @@ export interface LaunchSceneProps {
   launcherId: string;
   /** 0…1 rumble strength from the screen (already reduced-motion aware). */
   shake?: number;
+  /** -1..1 lateral steering from player controls */
+  steerX?: number;
   onCallout?: (c: LaunchCallout) => void;
 }
 
@@ -330,7 +332,7 @@ function LaunchComplex({
   );
 }
 
-export function LaunchScene({ progress, launcherId, shake = 0, onCallout }: LaunchSceneProps) {
+export function LaunchScene({ progress, launcherId, shake = 0, steerX = 0, onCallout }: LaunchSceneProps) {
   const q = useVisualQuality();
   const launcher = useMemo(() => lookupTables().launchers[launcherId] ?? null, [launcherId]);
   const capacity = launcher?.capacityToLeoKg ?? 1000;
@@ -342,6 +344,8 @@ export function LaunchScene({ progress, launcherId, shake = 0, onCallout }: Laun
   progressRef.current = progress;
   const shakeRef = useRef(shake);
   shakeRef.current = shake;
+  const steerXRef = useRef(steerX);
+  steerXRef.current = steerX;
   const calloutRef = useRef(onCallout);
   calloutRef.current = onCallout;
   const lastCallout = useRef(-1);
@@ -403,7 +407,12 @@ export function LaunchScene({ progress, launcherId, shake = 0, onCallout }: Laun
 
     // the world (pad + grid + ground) falls away; the vehicle stays framed
     if (world.current) world.current.position.y = -Math.pow(fall, 1.7) * 90;
-    if (rocket.current) rocket.current.position.y = 0.34 + stackH * 0.45 + smooth(0.12, 1, p) * 2.2;
+    if (rocket.current) {
+      const sx = steerXRef.current ?? 0;
+      rocket.current.position.y = 0.34 + stackH * 0.45 + smooth(0.12, 1, p) * 2.2;
+      rocket.current.position.x = sx * 2.4;
+      rocket.current.rotation.z = -sx * 0.28;
+    }
 
     // pad smoke billows at ignition then thins out
     if (smokeMat.current) {
@@ -499,6 +508,54 @@ export function LaunchScene({ progress, launcherId, shake = 0, onCallout }: Laun
             blending={AdditiveBlending}
           />
         </points>
+
+        {/* 3D Trajectory Guidance Waypoint Gates — visual highway leading up toward orbit */}
+        {[
+          { y: 12, x: 0 },
+          { y: 25, x: 0.5 },
+          { y: 40, x: -0.4 },
+          { y: 56, x: 0.6 },
+          { y: 72, x: -0.3 },
+          { y: 88, x: 0.1 },
+        ].map((g, idx) => (
+          <group key={`waypoint-${idx}`} position={[g.x * 2.4, g.y, 0]}>
+            {/* Luminous outer ring */}
+            <mesh rotation-x={Math.PI / 2}>
+              <torusGeometry args={[2.2, 0.06, 16, 48]} />
+              <meshStandardMaterial color="#3DE0FF" emissive="#3DE0FF" emissiveIntensity={1.4} toneMapped={false} transparent opacity={0.85} />
+            </mesh>
+            {/* Golden target gate */}
+            <mesh rotation-x={Math.PI / 2}>
+              <torusGeometry args={[1.5, 0.04, 16, 36]} />
+              <meshStandardMaterial color="#E9C37C" emissive="#E9C37C" emissiveIntensity={1.8} toneMapped={false} />
+            </mesh>
+            {/* Alignment beacons */}
+            {[-1.8, 1.8].map((px) => (
+              <mesh key={`pin-${px}`} position={[px, 0, 0]}>
+                <octahedronGeometry args={[0.22, 0]} />
+                <meshBasicMaterial color="#3DE0FF" />
+              </mesh>
+            ))}
+          </group>
+        ))}
+      </group>
+
+      {/* Destination Target Celestial Body (Planet / Moon in distance) */}
+      <group position={[-5, 26, -24]} scale={progress > 0.1 ? 1 : 0.001}>
+        <mesh>
+          <sphereGeometry args={[3.2, 32, 32]} />
+          <meshStandardMaterial color="#4A8CFF" roughness={0.65} metalness={0.15} />
+        </mesh>
+        {/* Atmosphere haze */}
+        <mesh scale={[1.14, 1.14, 1.14]}>
+          <sphereGeometry args={[3.2, 32, 32]} />
+          <meshBasicMaterial color="#3DE0FF" transparent opacity={0.3} side={BackSide} />
+        </mesh>
+        {/* Celestial ring */}
+        <mesh rotation-x={1.15} rotation-y={0.3}>
+          <ringGeometry args={[4.2, 5.8, 48]} />
+          <meshBasicMaterial color="#E9C37C" transparent opacity={0.35} side={DoubleSide} />
+        </mesh>
       </group>
 
       {/* the stack — real launcher capacity sets its size */}

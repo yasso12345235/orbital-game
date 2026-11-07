@@ -18,6 +18,9 @@
     "baseUrl": ".",
     "paths": {
       "@engine": ["src/engine/index.ts"],
+      "@core": ["src/core/index.ts"],
+      "@systems": ["src/systems/index.ts"],
+      "@world": ["src/world/index.ts"],
       "@/*": ["src/game/*"]
     },
     "types": ["vite/client"]

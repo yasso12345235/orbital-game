@@ -110,6 +110,18 @@ export function HomeScreen() {
     else setScreen('missionSelect');
   };
 
+  /** Direct 1-Click Launch: configures everything automatically and takes off directly */
+  const directInstantLaunch = () => {
+    const targetMissionId = missionId || peekMission?.id || 'lunar_probe';
+    selectMission(targetMissionId);
+    sound.play('confirm');
+    setTimeout(() => {
+      const st = useMission.getState();
+      st.autoLayout();
+      st.beginLaunch();
+    }, 120);
+  };
+
   const openHangar = (tab: 'profile' | 'hangar' | 'system') => {
     setHangarTab(tab);
     setScreen('hangar');
@@ -161,7 +173,7 @@ export function HomeScreen() {
       : { tone: 'muted' as const, text: t('locked') };
 
   return (
-    <div className="ma-home-shell relative isolate overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--ma-accent)_24%,var(--ma-line))] min-h-[calc(100vh-128px)] flex flex-col p-4 sm:p-6 lg:p-8">
+    <div className="ma-grand-command-bridge relative isolate flex flex-col p-4 sm:p-6 lg:p-8">
       {/* Cinematic orbit hairlines + sun flare behind the planet */}
       <div className="ma-epic-rings" aria-hidden><span /><span /><span /></div>
       <div className="ma-epic-flare" aria-hidden />
@@ -204,91 +216,117 @@ export function HomeScreen() {
       />
 
       {/* TOP COMMAND DECK TELEMETRY BANNER */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pb-5 mb-5 border-b border-[color-mix(in_srgb,var(--ma-accent)_18%,var(--ma-line))]">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pb-5 mb-5 border-b border-[rgba(61,224,255,0.2)]">
         <div className="flex flex-wrap items-center gap-2.5 text-[9.5px] font-mono tracking-[0.24em] text-[var(--ma-muted)] uppercase">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[color-mix(in_srgb,var(--ma-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ma-accent)_12%,transparent)] text-[var(--ma-accent)] font-semibold shadow-[0_0_12px_rgba(61,224,255,0.25)]">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--ma-accent)] bg-[rgba(61,224,255,0.12)] text-[var(--ma-accent)] font-semibold shadow-[0_0_12px_rgba(61,224,255,0.3)]">
             <span className="w-2 h-2 rounded-full bg-[var(--ma-accent)] shadow-[0_0_8px_var(--ma-accent)] animate-pulse" />
-            <span>FLIGHT CONTROL CENTER</span>
+            <span>FLIGHT COMMAND BRIDGE // SLC-40</span>
           </span>
           <span className="opacity-30">/</span>
-          <span className="tracking-widest">28.5721° N · 80.6480° W</span>
+          <span className="tracking-widest">DSN LINK: 8.425 GHz · LOCK 100%</span>
           <span className="opacity-30">/</span>
-          <span className="text-[var(--ma-gold-hi)] font-bold">{lang === 'ar' ? 'عمليات المدارات الفضائية' : 'ORBITAL DYNAMICS // READY'}</span>
+          <span className="text-[var(--ma-gold-hi)] font-bold">{lang === 'ar' ? 'أنظمة الملاحة والتوجيه الفضائي نشطة' : 'ORBITAL NAVIGATION // ONLINE'}</span>
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--ma-gold)] bg-[rgba(233,195,124,0.12)] text-white text-xs font-mono font-bold shadow-[0_0_15px_rgba(233,195,124,0.3)]">
+            <span>🪙</span>
+            <span className="text-[var(--ma-gold)]">+{fmt(progress.credits)}</span>
+            <span className="text-white/60">CR</span>
+          </div>
           <span className="ma-status" data-tone="good">
             <i />{lang === 'ar' ? 'الشبكة متصلة' : 'DSN ONLINE'}
           </span>
-          <span className="ma-hudtag" dir="ltr">LVL {level} · {fmt(progress.credits)} CR</span>
+          <span className="ma-hudtag" dir="ltr">LVL {level}</span>
         </div>
       </div>
 
       {/* MAIN COCKPIT GRID: HERO LEFT + OPERATIONS WINGS RIGHT */}
-      <div className="relative z-10 flex-1 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative z-10 flex-1 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         
         {/* LEFT COLUMN: HERO SHOWCASE & PLANETARY STAGE */}
         <div className="flex flex-col justify-between gap-6">
           <div>
-            <span className="ma-epic-kicker">
-              {lang === 'ar' ? 'برنامج مهندس المهمات الفضائية' : 'Mission Architect Program // NASA-ESA-SPX Spec'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="ma-epic-kicker text-[10px]">
+                {lang === 'ar' ? 'برنامج مهندس المهمات والرحلات الفضائية' : 'Mission Architect Program // Deep Space Network'}
+              </span>
+              <span className="text-[9px] px-2 py-0.5 rounded-full border border-[var(--ma-good)] text-[var(--ma-good)] bg-[rgba(47,224,90,0.1)] font-mono">
+                READY FOR LAUNCH
+              </span>
+            </div>
 
-            <h1 className="ma-hero-word mt-3 tracking-wider font-extrabold" dir="ltr">ORBITAL</h1>
+            <h1 className="ma-hero-word mt-2 tracking-wider font-black text-6xl sm:text-7xl drop-shadow-[0_0_40px_rgba(61,224,255,0.4)]" dir="ltr">
+              ORBITAL
+            </h1>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="ma-hero-sub font-semibold text-[11px] text-[var(--ma-gold-hi)]">{t('tagline')}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="font-bold text-sm text-[var(--ma-gold-hi)]">
+                {lang === 'ar' ? 'أوربيتال · محاكي الرحلات الفضائية والمدارات الحقيقي' : t('tagline')}
+              </span>
               <span className="text-[10px] font-mono tracking-[0.25em] text-[var(--ma-muted)] uppercase">
                 {lang === 'ar' ? 'محاكاة فيزيائية حقيقية · مدارات كبلر' : 'KEPLERIAN ASTRODYNAMICS · REAL PHYSICS'}
               </span>
             </div>
 
             <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-[var(--ma-muted)]">
-              {t('credentials')}
+              {lang === 'ar'
+                ? 'تحكم في إطلاق وتوجيه الصواريخ عبر ممرات الإرشاد المدارية، اجمع الكوينز والمكافآت خطوة بخطوة أثناء الصعود، واصل رحلتك حتى الوصول والهبوط على الكواكب.'
+                : t('credentials')}
             </p>
 
             {/* Dynamic Active Flight Vector Compass */}
-            <div className="mt-5 flex items-center gap-4 p-3.5 rounded-2xl bg-[rgba(6,12,26,0.7)] border border-[color-mix(in_srgb,var(--ma-accent)_28%,var(--ma-line))] max-w-xl backdrop-blur-md shadow-[0_12px_35px_rgba(0,0,0,0.6)]">
+            <div className="mt-5 flex items-center gap-4 p-4 rounded-2xl bg-[rgba(6,12,26,0.8)] border border-[rgba(61,224,255,0.3)] max-w-xl backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
               <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-dashed border-[var(--ma-accent)] animate-spin opacity-75" style={{ animationDuration: '22s' }} />
+                <div className="absolute inset-0 rounded-full border border-dashed border-[var(--ma-accent)] animate-spin opacity-85" style={{ animationDuration: '22s' }} />
                 <div className="absolute inset-2 rounded-full border border-[rgba(233,195,124,0.5)]" />
-                <div className="w-4 h-4 rounded-full bg-[radial-gradient(circle,var(--ma-accent),#071638)] shadow-[0_0_12px_var(--ma-accent)]" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_8px_#fff]" />
+                <div className="w-4 h-4 rounded-full bg-[radial-gradient(circle,var(--ma-accent),#071638)] shadow-[0_0_15px_var(--ma-accent)]" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#fff]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider text-[var(--ma-muted)]">
                   <span className="text-[var(--ma-text)] font-semibold flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--ma-good)] shadow-[0_0_6px_var(--ma-good)] animate-pulse" />
-                    {lang === 'ar' ? 'المسار المداري الحي' : 'ACTIVE FLIGHT VECTOR'}
+                    <span className="w-2 h-2 rounded-full bg-[var(--ma-good)] shadow-[0_0_8px_var(--ma-good)] animate-pulse" />
+                    {lang === 'ar' ? 'مسار الرحلة المدارية الحي' : 'ACTIVE FLIGHT VECTOR'}
                   </span>
-                  <span className="text-[var(--ma-gold-hi)] font-bold">28.5° INC</span>
+                  <span className="text-[var(--ma-gold-hi)] font-bold">28.5° INC // LEO</span>
                 </div>
-                <div className="mt-1 flex flex-wrap justify-between gap-x-4 text-[11px] font-mono text-[var(--ma-muted)]">
-                  <span>{lang === 'ar' ? 'الحضيض' : 'Periapsis'}: <b className="text-[var(--ma-text)]">185 km</b></span>
-                  <span>{lang === 'ar' ? 'الأوج' : 'Apoapsis'}: <b className="text-[var(--ma-text)]">420 km</b></span>
-                  <span>v: <b className="text-[var(--ma-accent)]">7.67 km/s</b></span>
+                <div className="mt-1.5 flex flex-wrap justify-between gap-x-4 text-[11px] font-mono text-[var(--ma-muted)]">
+                  <span>{lang === 'ar' ? 'الحضيض' : 'Periapsis'}: <b className="text-white">185 km</b></span>
+                  <span>{lang === 'ar' ? 'الأوج' : 'Apoapsis'}: <b className="text-white">420 km</b></span>
+                  <span>{lang === 'ar' ? 'السرعة' : 'Velocity'}: <b className="text-[var(--ma-accent)]">7.67 km/s</b></span>
                 </div>
               </div>
             </div>
 
-            {/* PRIMARY LAUNCH / RESUME CTA BUTTON */}
-            <div className="mt-6 flex flex-wrap items-center gap-4">
+            {/* GRAND MASTER LAUNCH ACTIONS */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                className="ma-master-launch-btn group"
-                onClick={continueMission}
+                className="ma-tactical-launch-button group"
+                onClick={directInstantLaunch}
               >
-                <Icon name={currentMission ? 'continue' : 'play'} size={20} className="group-hover:scale-110 transition-transform" />
-                <span>{primary}</span>
+                <span className="text-2xl group-hover:scale-125 group-hover:rotate-12 transition-transform">🚀</span>
+                <span className="font-black text-sm tracking-widest">{lang === 'ar' ? 'انطلاق فوري مباشر للرحلة وتوجيه الصاروخ' : 'Instant 1-Click Launch & Flight'}</span>
+                <span className="px-2 py-0.5 rounded-full bg-black/25 text-[10px] text-white/90 font-mono tracking-tight font-bold">LIVE HUD</span>
               </button>
 
               <button
                 type="button"
-                className="ma-pill ma-pill-ghost text-xs"
+                className="ma-tap px-4 py-3 rounded-2xl border border-[var(--ma-accent)] bg-[rgba(61,224,255,0.12)] hover:bg-[rgba(61,224,255,0.25)] text-xs font-bold text-white transition-all shadow-md flex items-center gap-2"
+                onClick={() => setScreen('builder')}
+              >
+                <Icon name="builder" size={17} />
+                <span>{lang === 'ar' ? 'تجهيز الصاروخ (Builder)' : 'Spacecraft Builder'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="ma-tap px-4 py-3 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-all shadow-md flex items-center gap-2"
                 onClick={() => setScreen('missionSelect')}
                 aria-label={t('missionSelect')}
               >
-                <Icon name="missions" size={16} />
+                <Icon name="missions" size={17} />
                 <span>{t('missionSelect')}</span>
               </button>
             </div>
@@ -297,15 +335,15 @@ export function HomeScreen() {
           {/* Real progress stats */}
           <dl className="grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { k: lang === 'ar' ? 'المهام' : 'Missions', v: `${completedCount}/${MISSIONS.length}` },
-              { k: lang === 'ar' ? 'أفضل نتيجة' : 'Best score', v: bestScore > 0 ? bestScore.toFixed(0) : '—' },
-              { k: lang === 'ar' ? 'الرصيد' : 'Credits', v: fmt(progress.credits) },
-              { k: lang === 'ar' ? 'المستوى' : 'Level', v: String(level) },
+              { k: lang === 'ar' ? 'المهام المكتملة' : 'Missions', v: `${completedCount}/${MISSIONS.length}` },
+              { k: lang === 'ar' ? 'أفضل نتيجة طيران' : 'Best score', v: bestScore > 0 ? bestScore.toFixed(0) : '—' },
+              { k: lang === 'ar' ? 'الرصيد الدائم' : 'Credits', v: `${fmt(progress.credits)} CR` },
+              { k: lang === 'ar' ? 'المستوى' : 'Level', v: `LVL ${level}` },
             ].map((s) => (
-              <div key={s.k} className="ma-epic-stat relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[rgba(233,195,124,0.3)] pointer-events-none" />
-                <dt className="ma-hudtag">{s.k}</dt>
-                <dd className="ma-num mt-2 text-[16px] font-extrabold text-[var(--ma-text)]">{s.v}</dd>
+              <div key={s.k} className="ma-epic-stat relative overflow-hidden group p-3.5 rounded-2xl bg-[rgba(6,12,28,0.7)] border border-[rgba(255,255,255,0.08)]">
+                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[var(--ma-gold)] pointer-events-none" />
+                <dt className="ma-hudtag text-[10px]">{s.k}</dt>
+                <dd className="ma-num mt-1 text-[15px] font-extrabold text-[var(--ma-gold-hi)]">{s.v}</dd>
               </div>
             ))}
           </dl>

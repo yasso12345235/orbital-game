@@ -147,44 +147,61 @@ export function StatusRail({ values }: { values?: RailValues }) {
 /* ------------------------------------------------------------------ */
 /* Mission control — the operations-phase command surface              */
 /* ------------------------------------------------------------------ */
-const OPS_CHIPS: { command: CommandName; hue: string }[] = [
-  { command: 'FIRE', hue: '#FF5470' },
-  { command: 'WARP', hue: '#B05CFF' },
-  { command: 'SCAN', hue: '#2FE05A' },
-  { command: 'NAV', hue: '#2F9CFF' },
-  { command: 'COM', hue: '#FFB81F' },
-  { command: 'SHLD', hue: '#B05CFF' },
+const OPS_CHIPS: { command: CommandName; hue: string; icon: string; ar: string; desc: string; descAr: string }[] = [
+  { command: 'FIRE', hue: '#FF5470', icon: '🚀', ar: 'دفع المحرك', desc: 'Engine burn / +dv', descAr: 'تشغيل الدفع وزيادة السرعة' },
+  { command: 'WARP', hue: '#B05CFF', icon: '⏩', ar: 'تسريع الزمن', desc: 'Time warp speed', descAr: 'تسريع دورة المدار والرحلة' },
+  { command: 'SCAN', hue: '#2FE05A', icon: '📡', ar: 'مسح علمي', desc: 'Science scan / +data', descAr: 'جمع بيانات القياس العلمي' },
+  { command: 'NAV', hue: '#2F9CFF', icon: '🧭', ar: 'توجيه ملاحة', desc: 'Orbit adjust', descAr: 'استقرار وضبط مسار المدار' },
+  { command: 'COM', hue: '#FFB81F', icon: '📶', ar: 'إرسال DSN', desc: 'Telemetry downlink', descAr: 'إرسال البيانات إلى محطة الأرض' },
+  { command: 'SHLD', hue: '#A77BFF', icon: '🛡️', ar: 'درع الأمان', desc: 'Safe mode shield', descAr: 'حماية الأنظمة وتوفير الطاقة' },
 ];
 
 const CHIP_LABEL: Record<string, StringKey> = {
-  FIRE: 'fire', WARP: 'warp', SCAN: 'scan', NAV: 'nav', COM: 'com', SHLD: 'shld',
+  FIRE: 'fire' as StringKey, WARP: 'warp' as StringKey, SCAN: 'scan' as StringKey, NAV: 'nav' as StringKey, COM: 'com' as StringKey, SHLD: 'shld' as StringKey,
 };
 
 export function MissionActions() {
   const t = useT();
   const lang = useLang();
   const kb = useMission((s) => s.settings.keybindings);
+  const dispatch = useMission((s) => s.dispatch);
 
   return (
-    <section className="ma-rail" aria-label={lang === 'ar' ? 'مركز التحكم' : 'Mission control'}>
+    <section className="ma-rail p-4 rounded-2xl border border-white/10 bg-[rgba(6,12,26,0.65)] backdrop-blur-md shadow-xl" aria-label={lang === 'ar' ? 'مركز التحكم بالعمليات' : 'Mission control'}>
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-        <PanelTag ar="مركز التحكم" en="MISSION CONTROL" />
-        <span className="text-[10px] uppercase tracking-widest text-[var(--ma-muted)]">
+        <PanelTag ar="مركز التحكم بالعمليات" en="MISSION CONTROL SUITE" />
+        <span className="text-[10px] uppercase tracking-widest text-[var(--ma-muted)] font-mono">
           {lang === 'ar'
-            ? 'انقر الشرائح أو استخدم المفاتيح المعروضة عليها'
-            : 'Click the chips — or use the keys printed on them'}
+            ? 'انقر الأزرار للتحكم المباشر بالمركبة أو استخدم مفاتيح الاختصار'
+            : 'Click commands for direct vehicle control or press keyboard shortcuts'}
         </span>
       </div>
       <StatusRail />
-      <div className="mt-4 flex flex-wrap gap-2">
-        {OPS_CHIPS.map(({ command, hue }) => (
-          <ActionChip
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        {OPS_CHIPS.map(({ command, hue, icon, ar, desc, descAr }) => (
+          <button
             key={command}
-            command={command}
-            label={t(CHIP_LABEL[command])}
-            hint={kb[command]}
-            hue={hue}
-          />
+            type="button"
+            className="ma-tap flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-[rgba(8,16,34,0.7)] hover:bg-[color-mix(in_srgb,var(--ma-accent)_15%,rgba(8,16,34,0.9))] hover:border-[var(--ma-accent)] transition-all shadow-md text-left"
+            style={{ ['--chip-hue' as string]: hue }}
+            onClick={() => {
+              haptic();
+              dispatch(command, { playerInitiated: true });
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-lg shrink-0">{icon}</span>
+              <div className="flex flex-col leading-tight min-w-0">
+                <span className="font-bold text-xs text-white truncate">{lang === 'ar' ? ar : command}</span>
+                <span className="text-[8.5px] text-[var(--ma-muted)] truncate">{lang === 'ar' ? descAr : desc}</span>
+              </div>
+            </div>
+            {kb[command] && (
+              <span className="text-[8px] px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono shrink-0" dir="ltr">
+                {keyLabel(kb[command])}
+              </span>
+            )}
+          </button>
         ))}
       </div>
     </section>

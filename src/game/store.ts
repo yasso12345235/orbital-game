@@ -52,7 +52,7 @@ import type { ModuleKind, UpgradeId, SolGoal } from './surface/model';
 export type ScreenId =
   | 'home' | 'hangar' | 'missionSelect' | 'builder' | 'launcher'
   | 'orbit' | 'simulation' | 'results' | 'techTree' | 'styleGuide' | 'playground'
-  | 'descent' | 'surface';
+  | 'descent' | 'surface' | 'flight';
 
 export interface DescentState {
   target: string;

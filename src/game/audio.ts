@@ -99,48 +99,125 @@ class SoundManager {
   play(name: SoundName) {
     this.resume();
     switch (name) {
-      case 'key': this.tone({ type: 'square', f0: 880, dur: 0.045, gain: 0.12 }); break;
-      case 'keyHover': this.tone({ type: 'square', f0: 1320, dur: 0.02, gain: 0.04 }); break;
-      case 'confirm': this.tone({ type: 'square', f0: 660, dur: 0.06, gain: 0.14 }); this.tone({ type: 'square', f0: 990, dur: 0.07, gain: 0.12, delay: 0.06 }); break;
-      case 'back': this.tone({ type: 'square', f0: 520, f1: 300, dur: 0.09, gain: 0.12 }); break;
-      case 'warp': this.tone({ type: 'sawtooth', f0: 200, f1: 1400, dur: 0.35, gain: 0.12 }); break;
-      case 'fire': this.noise({ dur: 0.5, gain: 0.3, type: 'lowpass', freq: 500, freqTo: 90 }); this.tone({ type: 'sawtooth', f0: 90, f1: 40, dur: 0.45, gain: 0.2 }); break;
-      case 'com': this.tone({ type: 'sine', f0: 740, dur: 0.12, gain: 0.14 }); this.tone({ type: 'sine', f0: 1100, dur: 0.12, gain: 0.12, delay: 0.13 }); break;
-      case 'scan': this.tone({ type: 'sine', f0: 1500, f1: 2200, dur: 0.25, gain: 0.12 }); this.tone({ type: 'sine', f0: 2200, f1: 1500, dur: 0.2, gain: 0.08, delay: 0.25 }); break;
-      case 'shldOn': this.tone({ type: 'triangle', f0: 300, f1: 1200, dur: 0.3, gain: 0.16 }); break;
-      case 'shldOff': this.tone({ type: 'triangle', f0: 1200, f1: 300, dur: 0.3, gain: 0.16 }); break;
-      case 'error': this.tone({ type: 'square', f0: 160, dur: 0.22, gain: 0.2 }); this.tone({ type: 'square', f0: 150, dur: 0.22, gain: 0.18, delay: 0.24 }); break;
-      case 'attach': this.noise({ dur: 0.22, gain: 0.1, type: 'bandpass', freq: 900, freqTo: 1800 }); this.tone({ type: 'square', f0: 520, f1: 880, dur: 0.1, gain: 0.1 }); break;
-      case 'beep': this.tone({ type: 'square', f0: 1040, dur: 0.08, gain: 0.14 }); break;
-      case 'alarm': this.tone({ type: 'square', f0: 900, dur: 0.3, gain: 0.18 }); this.tone({ type: 'square', f0: 700, dur: 0.3, gain: 0.18, delay: 0.3 }); break;
-      case 'tick': this.tone({ type: 'square', f0: 1200, dur: 0.03, gain: 0.08 }); break;
-      case 'rumble': this.noise({ dur: 2.4, gain: 0.35, type: 'lowpass', freq: 220, freqTo: 420 }); break;
-      case 'storm': this.noise({ dur: 1.6, gain: 0.22, type: 'bandpass', freq: 300, freqTo: 2600 }); break;
-      case 'static': this.noise({ dur: 0.9, gain: 0.18, type: 'highpass', freq: 1200 }); break;
-      case 'success': [660, 880, 990, 1320].forEach((f, i) => this.tone({ type: 'square', f0: f, dur: 0.16, gain: 0.14, delay: i * 0.15 })); break;
-      case 'failure': this.tone({ type: 'sawtooth', f0: 400, f1: 60, dur: 1.1, gain: 0.2 }); break;
-      case 'lockOpen': this.tone({ type: 'square', f0: 440, dur: 0.08, gain: 0.12 }); this.tone({ type: 'square', f0: 660, dur: 0.1, gain: 0.12, delay: 0.09 }); this.tone({ type: 'square', f0: 1320, dur: 0.3, gain: 0.14, delay: 0.2 }); break;
+      // High-tech crisp tactile click (dual softened sine + noise click)
+      case 'key':
+        this.tone({ type: 'triangle', f0: 980, dur: 0.035, gain: 0.08 });
+        this.tone({ type: 'sine', f0: 440, dur: 0.025, gain: 0.06 });
+        break;
+      // Gentle subtle hover blip
+      case 'keyHover':
+        this.tone({ type: 'sine', f0: 1760, dur: 0.018, gain: 0.03 });
+        break;
+      // Harmonious celestial confirmation chime
+      case 'confirm':
+        this.tone({ type: 'sine', f0: 587.33, dur: 0.12, gain: 0.12 }); // D5
+        this.tone({ type: 'sine', f0: 880, dur: 0.16, gain: 0.10, delay: 0.05 }); // A5
+        this.tone({ type: 'triangle', f0: 1174.66, dur: 0.22, gain: 0.08, delay: 0.1 }); // D6
+        break;
+      // Warm descending tone
+      case 'back':
+        this.tone({ type: 'triangle', f0: 620, f1: 310, dur: 0.12, gain: 0.1 });
+        break;
+      // Cosmic warp whoosh
+      case 'warp':
+        this.tone({ type: 'sine', f0: 160, f1: 1800, dur: 0.45, gain: 0.14 });
+        this.noise({ dur: 0.4, gain: 0.12, type: 'bandpass', freq: 400, freqTo: 2200 });
+        break;
+      // Rocket thruster roar with deep sub punch
+      case 'fire':
+        this.noise({ dur: 0.65, gain: 0.35, type: 'lowpass', freq: 750, freqTo: 110 });
+        this.tone({ type: 'triangle', f0: 85, f1: 45, dur: 0.5, gain: 0.25 });
+        this.tone({ type: 'sine', f0: 130, f1: 60, dur: 0.4, gain: 0.2 });
+        break;
+      // Communication beacon ping
+      case 'com':
+        this.tone({ type: 'sine', f0: 880, dur: 0.12, gain: 0.12 });
+        this.tone({ type: 'sine', f0: 1320, dur: 0.18, gain: 0.1, delay: 0.1 });
+        break;
+      // Holographic sensor scan sweep
+      case 'scan':
+        this.tone({ type: 'sine', f0: 1200, f1: 2400, dur: 0.28, gain: 0.12 });
+        this.tone({ type: 'triangle', f0: 2400, f1: 1400, dur: 0.22, gain: 0.09, delay: 0.18 });
+        break;
+      // Shield activate / deactivate
+      case 'shldOn':
+        this.tone({ type: 'sine', f0: 280, f1: 1400, dur: 0.35, gain: 0.15 });
+        this.noise({ dur: 0.3, gain: 0.08, type: 'bandpass', freq: 1200 });
+        break;
+      case 'shldOff':
+        this.tone({ type: 'sine', f0: 1400, f1: 280, dur: 0.35, gain: 0.15 });
+        break;
+      // Soft tech error warning
+      case 'error':
+        this.tone({ type: 'triangle', f0: 220, dur: 0.16, gain: 0.16 });
+        this.tone({ type: 'sine', f0: 185, dur: 0.18, gain: 0.18, delay: 0.1 });
+        break;
+      // Mechanical docking / latch sound
+      case 'attach':
+        this.noise({ dur: 0.18, gain: 0.15, type: 'bandpass', freq: 1100, freqTo: 2200 });
+        this.tone({ type: 'triangle', f0: 440, f1: 880, dur: 0.08, gain: 0.12 });
+        break;
+      case 'beep':
+        this.tone({ type: 'sine', f0: 1174.66, dur: 0.07, gain: 0.12 });
+        break;
+      case 'alarm':
+        this.tone({ type: 'sawtooth', f0: 880, dur: 0.2, gain: 0.15 });
+        this.tone({ type: 'sine', f0: 740, dur: 0.2, gain: 0.15, delay: 0.22 });
+        break;
+      case 'tick':
+        this.tone({ type: 'sine', f0: 1400, dur: 0.02, gain: 0.06 });
+        break;
+      // Deep visceral rocket launch rumble
+      case 'rumble':
+        this.noise({ dur: 3.0, gain: 0.42, type: 'lowpass', freq: 260, freqTo: 480 });
+        this.tone({ type: 'triangle', f0: 55, f1: 42, dur: 2.2, gain: 0.3 });
+        break;
+      case 'storm':
+        this.noise({ dur: 1.8, gain: 0.24, type: 'bandpass', freq: 350, freqTo: 2800 });
+        break;
+      case 'static':
+        this.noise({ dur: 0.7, gain: 0.12, type: 'highpass', freq: 1400 });
+        break;
+      // Uplifting mission success fanfare
+      case 'success':
+        [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((f, i) =>
+          this.tone({ type: 'sine', f0: f, dur: 0.28, gain: 0.13, delay: i * 0.11 })
+        );
+        break;
+      case 'failure':
+        this.tone({ type: 'sawtooth', f0: 320, f1: 50, dur: 1.2, gain: 0.22 });
+        this.noise({ dur: 0.8, gain: 0.15, type: 'lowpass', freq: 300 });
+        break;
+      case 'lockOpen':
+        this.tone({ type: 'sine', f0: 440, dur: 0.09, gain: 0.1 });
+        this.tone({ type: 'sine', f0: 659.25, dur: 0.1, gain: 0.12, delay: 0.08 });
+        this.tone({ type: 'sine', f0: 1318.51, dur: 0.35, gain: 0.15, delay: 0.18 });
+        break;
       default: break;
     }
   }
 
-  /** Low ambient drone for design screens. */
+  /** Ambient cosmic synthesizer drone for game screens. */
   startDrone() {
     this.resume();
     if (!this.ctx || !this.ambGain || this.droneNodes) return;
     const osc = this.ctx.createOscillator();
+    const sub = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = 55;
+    sub.type = 'triangle';
+    sub.frequency.value = 110;
     const lfo = this.ctx.createOscillator();
     const lfoGain = this.ctx.createGain();
     lfo.frequency.value = 0.08;
-    lfoGain.gain.value = 6;
+    lfoGain.gain.value = 4;
     lfo.connect(lfoGain).connect(osc.frequency);
     g.gain.value = 0;
-    g.gain.linearRampToValueAtTime(0.05, this.ctx.currentTime + 2);
+    g.gain.linearRampToValueAtTime(0.045, this.ctx.currentTime + 2.5);
     osc.connect(g).connect(this.ambGain);
-    osc.start(); lfo.start();
+    sub.connect(g).connect(this.ambGain);
+    osc.start(); sub.start(); lfo.start();
     this.droneNodes = { osc, gain: g };
   }
 
@@ -161,7 +238,7 @@ class SoundManager {
     const src = this.ctx.createBufferSource();
     src.buffer = buf; src.loop = true;
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass'; filter.frequency.value = 150;
+    filter.type = 'lowpass'; filter.frequency.value = 180;
     const g = this.ctx.createGain();
     g.gain.value = 0;
     src.connect(filter).connect(g).connect(this.fxGain);
@@ -171,8 +248,8 @@ class SoundManager {
 
   setRumble(level: number) {
     if (!this.ctx || !this.rumbleNodes) return;
-    this.rumbleNodes.gain.gain.value = Math.max(0, Math.min(1, level)) * 0.5;
-    this.rumbleNodes.filter.frequency.value = 120 + level * 400;
+    this.rumbleNodes.gain.gain.value = Math.max(0, Math.min(1, level)) * 0.45;
+    this.rumbleNodes.filter.frequency.value = 140 + level * 520;
   }
 
   stopRumble() {

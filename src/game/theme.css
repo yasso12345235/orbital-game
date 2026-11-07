@@ -1,9 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap');
+
 /* ============================================================
    Mission Architect — theme tokens + pixel console layer
-   Palette (Part 6): Void #02050F, Deep #050B1F, Panel #0B1A3D,
-   Line #1B2A50, Text #E8F1FF, Muted #8FA3C8.
-   Dynamic accent via [data-theme] on .ma-root, cross-fade 0.6s.
    ============================================================ */
+*, ::before, ::after {
+  font-family: 'Cairo', 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 .ma-root {
   --ma-void: #05070D;
   --ma-deep: #0A1224;
@@ -16,11 +19,11 @@
   --ma-good: #2FE39A;
   --ma-bad: #FF4D6A;
   --ma-warn: #FFC542;
-  --ma-pixel: 'Silkscreen', 'Courier New', monospace;
-  --ma-hud: 'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif;
-  --ma-serif: 'Cormorant Garamond', Georgia, serif;
-  --ma-body: 'Inter', 'Segoe UI', sans-serif;
-  --ma-ar: 'Cairo', 'Tajawal', 'Segoe UI', sans-serif;
+  --ma-pixel: 'Orbitron', 'JetBrains Mono', monospace;
+  --ma-hud: 'Orbitron', 'Cairo', sans-serif;
+  --ma-serif: 'Orbitron', 'Cairo', sans-serif;
+  --ma-body: 'Cairo', 'Orbitron', sans-serif;
+  --ma-ar: 'Cairo', 'Orbitron', sans-serif;
   --ma-mono: 'JetBrains Mono', Consolas, monospace;
   /* v2 visual-layer tokens (mirrored in src/game/visual/theme/tokens.ts) */
   --ma-neon-a1: #3DE0FF;
